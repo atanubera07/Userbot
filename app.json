@@ -5,6 +5,7 @@
   "buildpacks": [{"url": "heroku/python"}],
   "formation": {"worker": {"quantity": 1, "size": "basic"}},
   "env": {
+    "TELEGRAM_LIBRARY": {"description": "telethon or pyrogram; session string must match", "value": "telethon"},
     "TELEGRAM_API_ID": {"description": "Your API ID from my.telegram.org/apps", "required": true},
     "TELEGRAM_API_HASH": {"description": "Your API hash from my.telegram.org/apps", "required": true},
     "TELEGRAM_SESSION_STRING": {"description": "Generate locally with python generate_session.py", "required": true},

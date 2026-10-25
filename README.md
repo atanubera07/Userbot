@@ -2,7 +2,7 @@
 
 A standalone Python userbot for your Telegram account, combining the battle
 behavior from `test.py` and the catching behavior from `hexa_v4.py`. It uses the
-official Telethon 1.x library and `.hexa` commands. It does not require LEGENDBOT,
+Telethon 1.x or Pyrogram 2.x and `.hexa` commands. It does not require LEGENDBOT,
 a database, or an assistant bot token.
 
 **Free Render setup:** use the included `render.yaml` and [Render guide](RENDER.md).
@@ -38,8 +38,9 @@ python hexa_userbot.py
 
 On first run, enter your phone number, Telegram login code, and two-step
 verification password if prompted **in your own terminal**. Alternatively, put
-your existing private Telethon StringSession in `TELEGRAM_SESSION_STRING` in
-`.env`. No session maker website is needed.
+your existing private session string in `TELEGRAM_SESSION_STRING` in `.env`.
+Set `TELEGRAM_LIBRARY=pyrogram` for a Pyrogram string; Telethon is the default.
+No session maker website is needed.
 
 Open `@HeXamonbot` and press Start with that account first. Finish any existing
 encounter and answer any pending game verification before starting automation.
@@ -131,7 +132,8 @@ messages. Resolution or delivery failures fall back to Saved Messages.
 | Variable | Default / purpose |
 | --- | --- |
 | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` | Required: your application credentials |
-| `TELEGRAM_SESSION_STRING` | Optional private Telethon StringSession |
+| `TELEGRAM_LIBRARY` | `telethon` (default) or `pyrogram` |
+| `TELEGRAM_SESSION_STRING` | Private session string matching the selected library |
 | `TELEGRAM_SESSION_FILE` | Optional local session path; default `~/.hexa/hexa_userbot` |
 | `TELEGRAM_SESSION` | Older session-path alias; takes precedence over `TELEGRAM_SESSION_FILE` |
 | `HEXA_BOT_USERNAME` | `@HeXamonbot` |
@@ -166,7 +168,8 @@ flows, mode switching, limits, cancellation, and manual pauses. They do not log 
 to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
-Verified with Python 3.12 and Telethon 1.45.0: 189 offline tests passed. Tests include real Telethon
+Verified with Python 3.12 and 3.13, Telethon 1.45.0, and Pyrogram 2.0.106:
+208 offline tests passed on each Python version. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -249,6 +252,27 @@ After deployment, check the logs for `Ready`, then send `.hexa battle` or
 automatic hunting on restart is disabled. Keep one replica and stop the previous
 deployment before enabling another one with the same session. The session lock
 only protects copies sharing the same local filesystem.
+
+### Use a Pyrogram session
+
+Set `TELEGRAM_LIBRARY=pyrogram` and put your **Pyrogram session string** in
+`TELEGRAM_SESSION_STRING`. Keep your API ID and hash in the same Render
+environment settings. Choose **Save, rebuild, and deploy** so the new dependency
+and adapter are included. Both battle and catch commands work with either library.
+
+To generate a Pyrogram session locally, run:
+
+```bash
+python generate_session.py --library pyrogram
+```
+
+This asks for missing API credentials locally, then saves
+`.session-string-pyrogram`. A `.env` file is optional. Keep that file private.
+Telethon remains the default (`TELEGRAM_LIBRARY=telethon`), with its session
+generator saving `.session-string`. Session strings belong to their respective
+library; selecting a library does not convert a string from another library.
+Use a separate local session-file path for each library if you configure one
+manually. Pyrogram uses its own default local session path.
 
 ### Netlify and Vercel
 

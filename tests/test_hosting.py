@@ -2,6 +2,7 @@
 import contextlib
 import asyncio
 import hashlib
+import importlib.util
 import io
 import os
 import signal
@@ -11,7 +12,7 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import AsyncMock, Mock, patch
 
-from hexa_userbot import main
+from hexa_userbot import main, telegram_library
 
 try:
     import telethon
@@ -27,6 +28,15 @@ class HeadlessConfigurationTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LocalCredentialTests(unittest.TestCase):
+    def test_library_selection_is_explicit_and_validated(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(telegram_library(), 'telethon')
+        with patch.dict(os.environ, {'TELEGRAM_LIBRARY': 'Pyrogram'}, clear=True):
+            self.assertEqual(telegram_library(), 'pyrogram')
+        with patch.dict(os.environ, {'TELEGRAM_LIBRARY': 'unknown'}, clear=True):
+            with self.assertRaisesRegex(ValueError, 'TELEGRAM_LIBRARY'):
+                telegram_library()
+
     def test_missing_dotenv_prompts_for_credentials_locally(self):
         from generate_session import login_credentials
         with patch.dict(os.environ, {}, clear=True), \
@@ -155,8 +165,62 @@ class HeadlessLoginTests(unittest.IsolatedAsyncioTestCase):
         client.disconnect.assert_awaited_once()
 
 
+@unittest.skipUnless(importlib.util.find_spec('pyrogram'), 'Install Pyrogram to test its hosting path')
+class PyrogramRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    async def boot(self, authorized):
+        client = NS(connect=AsyncMock(), is_user_authorized=AsyncMock(return_value=authorized),
+                    start=AsyncMock(), disconnect=AsyncMock(), get_me=AsyncMock(return_value=NS(id=123)),
+                    get_entity=AsyncMock(return_value=NS(id=572621020, bot=True)),
+                    register_controller_handlers=Mock(), send_message=AsyncMock(),
+                    run_until_disconnected=AsyncMock())
+        self.client = client
+        with tempfile.TemporaryDirectory() as temp:
+            env = {'TELEGRAM_LIBRARY': 'pyrogram', 'TELEGRAM_API_ID': '12345',
+                   'TELEGRAM_API_HASH': 'a' * 32, 'TELEGRAM_SESSION_STRING': 'test-pyrogram-session',
+                   'TELEGRAM_SESSION_FILE': str(Path(temp)/'worker'), 'HEXA_NOTIFY_CHAT': 'me'}
+            with patch.dict(os.environ, env, clear=True), \
+                    patch('pyrogram_transport.PyrogramTransport', return_value=client) as factory, \
+                    patch('hexa_userbot.Path.home', return_value=Path(temp)), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                await main(mode='battle', non_interactive=True)
+                factory.assert_called_once_with(12345, 'a' * 32, str(Path(temp)/'worker'), 'test-pyrogram-session')
+
+    async def test_pyrogram_backend_boots_without_interactive_login(self):
+        await self.boot(True)
+        self.client.start.assert_not_awaited()
+        self.client.connect.assert_awaited_once()
+        self.client.register_controller_handlers.assert_called_once()
+        self.client.send_message.assert_not_awaited()
+        self.client.run_until_disconnected.assert_awaited_once()
+        self.client.disconnect.assert_awaited_once()
+
+    async def test_unauthorized_pyrogram_session_disconnects_without_prompt(self):
+        with self.assertRaisesRegex(RuntimeError, 'no longer authorized'):
+            await self.boot(False)
+        self.client.start.assert_not_awaited()
+        self.client.register_controller_handlers.assert_not_called()
+        self.client.disconnect.assert_awaited_once()
+
+
 @unittest.skipIf(telethon is None, 'Install requirements.txt to test the local session generator')
 class SessionGeneratorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_pyrogram_session_is_exported_to_private_file_without_printing(self):
+        from generate_session import generate
+        from unittest.mock import MagicMock
+        client = NS(export_session_string=AsyncMock(return_value='test-pyrogram-value'))
+        context = MagicMock(__aenter__=AsyncMock(return_value=client), __aexit__=AsyncMock(return_value=False))
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp)/'.session-string-pyrogram'
+            with patch.dict(os.environ, {'TELEGRAM_API_ID': '12345', 'TELEGRAM_API_HASH': 'a' * 32}, clear=True), \
+                    patch('pyrogram.Client', return_value=context) as factory:
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    await generate(target, library='pyrogram')
+                self.assertEqual(output.getvalue(), '')
+                self.assertEqual(target.read_text(), 'test-pyrogram-value\n')
+                self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+                factory.assert_called_once_with('hexa-session-maker', api_id=12345, api_hash='a' * 32, in_memory=True)
+
     async def test_session_is_saved_privately_without_printing_or_overwriting_it(self):
         from generate_session import generate
         client = NS(session=NS(save=Mock(return_value='test-session-value')))

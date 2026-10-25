@@ -7,7 +7,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN useradd --create-home --uid 10001 hexa
-COPY --chown=hexa:hexa hexa_userbot.py ./
+COPY --chown=hexa:hexa hexa_userbot.py pyrogram_transport.py ./
 USER hexa
 
 CMD ["python", "hexa_userbot.py", "--non-interactive"]

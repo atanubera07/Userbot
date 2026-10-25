@@ -1,6 +1,6 @@
 """HeXamon userbot with separate battle and catch modes.
 
-Python 3.10+ and Telethon 1.x. Configure .env, then run python hexa_userbot.py.
+Python 3.10+, Telethon 1.x or Pyrogram 2.x. Configure .env, then run python hexa_userbot.py.
 Commands in Saved Messages or the HeXamon chat:
     .hexa battle   battle ordinary Pokemon without catching
     .hexa catch    catch listed targets, weakening when needed
@@ -31,6 +31,7 @@ from types import SimpleNamespace
 LOG = logging.getLogger('hexa')
 
 MODES = {'battle', 'catch'}
+LIBRARIES = {'telethon', 'pyrogram'}
 COMMAND_PATTERN = re.compile(r'(?i)^(?:\.hexa(?:\s+[^\r\n]*)?|/(?:go|stop|status))\s*$')
 HELP_TEXT = (
     'HeXamon commands (Saved Messages or the HeXamon chat):\n'
@@ -921,6 +922,13 @@ def runtime_config():
     return api_id, api_hash, username, int(bot_id) if bot_id else None, session, session_string
 
 
+def telegram_library():
+    library = os.getenv('TELEGRAM_LIBRARY', 'telethon').strip().lower()
+    if library not in LIBRARIES:
+        raise ValueError('TELEGRAM_LIBRARY must be telethon or pyrogram')
+    return library
+
+
 async def resolve_bot(client, username, bot_id):
     if username:
         entity = await client.get_entity(username)
@@ -944,6 +952,9 @@ async def resolve_bot(client, username, bot_id):
 
 
 def register_handlers(client, controller, peer, owner):
+    if hasattr(client, 'register_controller_handlers'):
+        client.register_controller_handlers(controller, peer, owner)
+        return
     from telethon import events
 
     client.add_event_handler(controller.receive, events.NewMessage(chats=peer, from_users=peer, incoming=True))
@@ -1039,15 +1050,22 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
     if mode is not None:
         settings.mode = mode
     api_id, api_hash, username, bot_id, session_path, session_string = runtime_config()
+    library = telegram_library()
     if non_interactive and not session_string:
         raise ValueError('TELEGRAM_SESSION_STRING is required for hosting. '
                          'Run python generate_session.py in your own terminal first.')
     try:
-        from telethon import TelegramClient
-        from telethon.errors import RPCError
-        from telethon.sessions import StringSession
+        if library == 'telethon':
+            from telethon import TelegramClient
+            from telethon.errors import RPCError
+            from telethon.sessions import StringSession
+        else:
+            from pyrogram_transport import PyrogramTransport
+            from pyrogram.errors import RPCError
     except ImportError as exc:
-        raise RuntimeError("Install dependencies: python -m pip install 'Telethon>=1.36,<2'") from exc
+        raise RuntimeError('Install dependencies: python -m pip install -r requirements.txt') from exc
+    if library == 'pyrogram' and not (os.getenv('TELEGRAM_SESSION') or os.getenv('TELEGRAM_SESSION_FILE')):
+        session_path = str(Path.home() / '.hexa' / 'hexa_pyrogram')
     session_path = Path(session_path).expanduser().resolve()
     session_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     # All spellings of the same SQLite session use the same guard.
@@ -1059,7 +1077,8 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
         lock_dir = os.getenv('HEXA_LOCK_DIR', '').strip()
         guard_dir = Path(lock_dir).expanduser().resolve() if lock_dir else Path.home() / '.hexa'
         guard_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        guard_path = guard_dir / ('string-' + fingerprint + '.lock')
+        prefix = 'string-' if library == 'telethon' else 'pyrogram-'
+        guard_path = guard_dir / (prefix + fingerprint + '.lock')
     else:
         guard_path = Path(canonical + '.lock')
     import fcntl
@@ -1068,8 +1087,15 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             fcntl.flock(guard.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
             raise RuntimeError('Another copy is using this session. Stop that copy first.') from exc
-        session = StringSession(session_string) if session_string else str(session_path)
-        client = TelegramClient(session, api_id, api_hash, flood_sleep_threshold=0)
+        try:
+            if library == 'telethon':
+                session = StringSession(session_string) if session_string else str(session_path)
+                client = TelegramClient(session, api_id, api_hash, flood_sleep_threshold=0)
+            else:
+                client = PyrogramTransport(api_id, api_hash, str(session_path), session_string)
+        except (ValueError, TypeError):
+            raise ValueError(f'Invalid {library} session. TELEGRAM_SESSION_STRING must match '
+                             'TELEGRAM_LIBRARY; generate a matching session locally.') from None
         controller = None
         health = HealthServer() if http_port is not None else None
         loop = asyncio.get_running_loop()
@@ -1112,7 +1138,7 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             register_handlers(client, controller, peer, owner)
             if health is not None:
                 health.ready = True
-            print(f'Ready: selected mode={controller.mode}; {len(settings.targets)} catch targets.\n'
+            print(f'Ready: selected mode={controller.mode}; library={library}; {len(settings.targets)} catch targets.\n'
                   'Send .hexa battle, .hexa catch, or .hexa help in Saved Messages or the HeXamon chat.\n'
                   'Finish any existing encounter and pending verification manually before starting.')
             if autostart:
@@ -1166,9 +1192,10 @@ def cli():
         if args.check:
             settings = Settings.load()
             config = runtime_config()
+            library = telegram_library()
             if args.non_interactive and not config[5]:
                 raise ValueError('TELEGRAM_SESSION_STRING is required for non-interactive hosting')
-            print(f'Configuration valid: mode={args.mode or settings.mode}; '
+            print(f'Configuration valid: mode={args.mode or settings.mode}; library={library}; '
                   f'{len(settings.targets)} catch targets. No Telegram connection made.')
         else:
             asyncio.run(main(args.autostart, args.mode, args.non_interactive, http_port))

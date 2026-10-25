@@ -1,4 +1,4 @@
-"""Generate a private Telethon StringSession locally, without using a website."""
+"""Generate a private Telethon or Pyrogram session locally, without using a website."""
 import asyncio
 import getpass
 import os
@@ -25,16 +25,25 @@ def login_credentials():
     return api_id, api_hash
 
 
-async def generate(destination):
-    from telethon import TelegramClient
-    from telethon.sessions import StringSession
+async def generate(destination, library='telethon'):
+    if library == 'telethon':
+        from telethon import TelegramClient
+        from telethon.sessions import StringSession
+    elif library == 'pyrogram':
+        from pyrogram import Client
+    else:
+        raise ValueError('Library must be telethon or pyrogram')
 
     api_id, api_hash = login_credentials()
     # Exclusive creation prevents accidentally replacing an existing session.
     fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        async with TelegramClient(StringSession(), api_id, api_hash) as client:
-            value = client.session.save()
+        if library == 'telethon':
+            async with TelegramClient(StringSession(), api_id, api_hash) as client:
+                value = client.session.save()
+        else:
+            async with Client('hexa-session-maker', api_id=api_id, api_hash=api_hash, in_memory=True) as client:
+                value = await client.export_session_string()
         with os.fdopen(fd, 'w') as output:
             fd = None
             output.write(value + '\n')
@@ -49,14 +58,20 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--library', choices=['telethon', 'pyrogram'],
+                        help='Session library (default: TELEGRAM_LIBRARY, otherwise telethon)')
     parser.add_argument('--output', type=Path,
-                        default=Path(__file__).resolve().parent / '.session-string',
-                        help='Private output file (default: .session-string beside this script)')
+                        help='Private output file (default: .session-string or .session-string-pyrogram)')
     args = parser.parse_args()
     try:
         from dotenv import load_dotenv
         load_dotenv(Path(__file__).resolve().parent / '.env', override=False)
-        asyncio.run(generate(args.output.expanduser().resolve()))
+        library = args.library or os.getenv('TELEGRAM_LIBRARY', 'telethon').strip().lower()
+        if library not in {'telethon', 'pyrogram'}:
+            raise ValueError('TELEGRAM_LIBRARY must be telethon or pyrogram')
+        name = '.session-string-pyrogram' if library == 'pyrogram' else '.session-string'
+        destination = args.output or Path(__file__).resolve().parent / name
+        asyncio.run(generate(destination.expanduser().resolve(), library=library))
     except FileExistsError:
         parser.exit(2, 'Error: output already exists; choose a different --output file.\n')
     except ImportError:
@@ -67,8 +82,9 @@ def main():
         parser.exit(2, 'Error: run this script in your own interactive terminal to enter login details.\n')
     except (ValueError, RuntimeError, OSError) as exc:
         parser.exit(2, f'Error: {exc}\n')
-    print(f'Session saved privately to {args.output}.\n'
-          'Open the file locally with: nano ' + str(args.output) + '\n'
+    print(f'{library.capitalize()} session saved privately to {destination}.\n'
+          'Open the file locally with: nano ' + str(destination) + '\n'
+          f'Set TELEGRAM_LIBRARY={library} in your host\'s environment settings.\n'
           'Copy its contents into TELEGRAM_SESSION_STRING in your host\'s secret settings.\n'
           'Keep this file private; do not commit it or paste it into a chat.')
     return 0

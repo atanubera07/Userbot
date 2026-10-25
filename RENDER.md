@@ -35,6 +35,11 @@ two-step password locally when asked. The script saves the result in
 contents directly into Render's secret settings. Do not upload that file to
 GitHub or paste its contents into a chat.
 
+For a **Pyrogram** session, use `python generate_session.py --library pyrogram`.
+It writes `.session-string-pyrogram`. You can also use your existing Pyrogram
+session string; set `TELEGRAM_LIBRARY=pyrogram` in Render so the userbot reads its
+format correctly. Telethon strings use `TELEGRAM_LIBRARY=telethon` (the default).
+
 ## 3. Create the free service
 
 [Deploy Userbot to Render Free](https://render.com/deploy?repo=https://github.com/atanubera07/Userbot)
@@ -52,6 +57,11 @@ GitHub or paste its contents into a chat.
    | `TELEGRAM_API_ID` | Your API application ID |
    | `TELEGRAM_API_HASH` | Your API application hash |
    | `TELEGRAM_SESSION_STRING` | Contents of your local `.session-string` file |
+
+   For Pyrogram, also set `TELEGRAM_LIBRARY=pyrogram` and use the contents of
+   `.session-string-pyrogram` instead. After adding or changing these settings,
+   choose **Save, rebuild, and deploy** to install the selected library and
+   deploy the latest source. Keep session strings private.
 
 5. Review the plan and usage settings, then create the Blueprint. Check the logs
    for the Telegram **Ready** message.
