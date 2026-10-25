@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 
+from telegram_credentials import parse_api_hash, parse_api_id
+
 LOG = logging.getLogger('hexa')
 
 MODES = {'battle', 'catch'}
@@ -899,14 +901,8 @@ class Controller:
 
 
 def api_credentials():
-    try:
-        api_id = int(os.getenv('TELEGRAM_API_ID', '').strip() or '0')
-    except ValueError:
-        raise ValueError('TELEGRAM_API_ID must be a positive integer') from None
-    api_hash = os.getenv('TELEGRAM_API_HASH', '').strip()
-    if api_id <= 0 or not re.fullmatch(r'[a-fA-F0-9]{32}', api_hash):
-        raise ValueError('Set a positive TELEGRAM_API_ID and a 32-character TELEGRAM_API_HASH')
-    return api_id, api_hash
+    return (parse_api_id(os.getenv('TELEGRAM_API_ID', '')),
+            parse_api_hash(os.getenv('TELEGRAM_API_HASH', '')))
 
 
 def runtime_config():

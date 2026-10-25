@@ -13,7 +13,8 @@ the service sleeps or restarts and does not resume automatically.
 Your GitHub connection named `atanu` belongs to account **atanubera07**. Use the
 private repository **[atanubera07/Userbot](https://github.com/atanubera07/Userbot)**.
 The project files belong at its root, including `render.yaml`, `.python-version`,
-`requirements.txt`, `hexa_userbot.py`, and `generate_session.py`.
+`requirements.txt`, `hexa_userbot.py`, `generate_session.py`,
+`telegram_credentials.py`, and `pyrogram_transport.py`.
 
 A private repository works when your Render account can access it. Keep `.env`,
 `.session-string`, and all `*.session` files out of GitHub.
@@ -62,6 +63,13 @@ format correctly. Telethon strings use `TELEGRAM_LIBRARY=telethon` (the default)
    `.session-string-pyrogram` instead. After adding or changing these settings,
    choose **Save, rebuild, and deploy** to install the selected library and
    deploy the latest source. Keep session strings private.
+
+   The API ID is the numeric **App api_id** from `my.telegram.org/apps`.
+   Matching outer quotes and invisible clipboard characters at the edges are
+   accepted. Other formatting errors stop startup before any Telegram login;
+   error messages never display the value. Edit the variable on this Render
+   service and rebuild: process environment values take precedence over `.env`,
+   and a service restart uses the previous deploy's saved configuration.
 
 5. Review the plan and usage settings, then create the Blueprint. Check the logs
    for the Telegram **Ready** message.

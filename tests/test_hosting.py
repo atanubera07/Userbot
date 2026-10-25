@@ -28,6 +28,19 @@ class HeadlessConfigurationTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LocalCredentialTests(unittest.TestCase):
+    def test_pasted_quoted_credentials_work_in_hosted_and_local_login(self):
+        from generate_session import login_credentials
+        from hexa_userbot import api_credentials
+        env = {'TELEGRAM_API_ID': '\ufeff\u200b"12345"\u200b',
+               'TELEGRAM_API_HASH': '\u200e\u201c' + 'a' * 32 + '\u201d\u200f'}
+        with patch.dict(os.environ, env, clear=True), \
+                patch('builtins.input') as api_input, \
+                patch('generate_session.getpass.getpass') as hash_input:
+            self.assertEqual(api_credentials(), (12345, 'a' * 32))
+            self.assertEqual(login_credentials(), (12345, 'a' * 32))
+        api_input.assert_not_called()
+        hash_input.assert_not_called()
+
     def test_library_selection_is_explicit_and_validated(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(telegram_library(), 'telethon')

@@ -31,6 +31,11 @@ Edit `.env` and fill in `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from
 The script loads `.env` from its own folder; existing environment variables take
 precedence.
 
+API credentials accept matching outer quotes and invisible clipboard characters
+at the edges. The ID must still contain only decimal digits, and the hash must
+contain exactly 32 hexadecimal characters. Validation errors describe formatting
+without displaying your credentials.
+
 ```bash
 python hexa_userbot.py --check
 python hexa_userbot.py
@@ -168,8 +173,8 @@ flows, mode switching, limits, cancellation, and manual pauses. They do not log 
 to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
-Verified with Python 3.12 and 3.13, Telethon 1.45.0, and Pyrogram 2.0.106:
-208 offline tests passed on each Python version. Tests include real Telegram-library
+Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
+221 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.

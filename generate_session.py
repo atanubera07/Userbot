@@ -2,27 +2,21 @@
 import asyncio
 import getpass
 import os
-import re
 from pathlib import Path
+
+from telegram_credentials import normalize_credential, parse_api_hash, parse_api_id
 
 
 def login_credentials():
     """Use configured credentials or ask locally; no .env file is required."""
-    value = os.getenv('TELEGRAM_API_ID', '').strip()
-    if not value:
+    value = os.getenv('TELEGRAM_API_ID', '')
+    if not normalize_credential(value):
         value = input('Telegram API ID (from my.telegram.org/apps): ').strip()
-    try:
-        api_id = int(value)
-    except ValueError:
-        raise ValueError('Telegram API ID must be a positive integer') from None
-    if api_id <= 0:
-        raise ValueError('Telegram API ID must be a positive integer')
-    api_hash = os.getenv('TELEGRAM_API_HASH', '').strip()
-    if not api_hash:
+    api_id = parse_api_id(value)
+    api_hash = os.getenv('TELEGRAM_API_HASH', '')
+    if not normalize_credential(api_hash):
         api_hash = getpass.getpass('Telegram API hash (hidden while typing): ').strip()
-    if not re.fullmatch(r'[a-fA-F0-9]{32}', api_hash):
-        raise ValueError('Telegram API hash must contain exactly 32 hexadecimal characters')
-    return api_id, api_hash
+    return api_id, parse_api_hash(api_hash)
 
 
 async def generate(destination, library='telethon'):
