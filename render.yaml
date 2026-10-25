@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+previews:
+  generation: 'off'
+
+services:
+  - type: web
+    name: hexa-userbot
+    runtime: python
+    plan: free
+    region: singapore
+    numInstances: 1
+    autoDeployTrigger: 'off'
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -u hexa_userbot.py --non-interactive --web
+    healthCheckPath: /healthz
+    envVars:
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: TELEGRAM_SESSION_STRING
+        sync: false
+      - key: HEXA_MODE
+        value: battle
+      - key: HEXA_NOTIFY_CHAT
+        value: '-1004490697963'
+      - key: HEXA_ALERT_TAG
+        value: '@Kill_switch8'
+      - key: HEXA_BOT_USERNAME
+        value: '@HeXamonbot'
+      - key: HEXA_BALL
+        value: Regular Ball

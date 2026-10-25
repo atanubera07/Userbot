@@ -1,0 +1,9 @@
+.git/
+.env
+.venv/
+.session-string*
+*.session*
+*.lock
+*.log
+__pycache__/
+tests/

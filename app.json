@@ -1,0 +1,22 @@
+{
+  "name": "HeXamon Userbot",
+  "description": "Telegram account userbot with separate HeXamon battle and catch modes.",
+  "stack": "heroku-24",
+  "buildpacks": [{"url": "heroku/python"}],
+  "formation": {"worker": {"quantity": 1, "size": "basic"}},
+  "env": {
+    "TELEGRAM_API_ID": {"description": "Your API ID from my.telegram.org/apps", "required": true},
+    "TELEGRAM_API_HASH": {"description": "Your API hash from my.telegram.org/apps", "required": true},
+    "TELEGRAM_SESSION_STRING": {"description": "Generate locally with python generate_session.py", "required": true},
+    "HEXA_MODE": {"description": "Initial mode: battle or catch", "value": "battle"},
+    "HEXA_NOTIFY_CHAT": {"description": "Alert chat: me, group username, or signed chat ID", "value": "-1004490697963"},
+    "HEXA_ALERT_TAG": {"description": "Notification recipient", "value": "@Kill_switch8"},
+    "HEXA_BOT_USERNAME": {"value": "@HeXamonbot"},
+    "HEXA_BALL": {"value": "Regular Ball"},
+    "HEXA_DELAY": {"value": "5"},
+    "HEXA_HUNT_DELAY": {"value": "1"},
+    "HEXA_TIMEOUT": {"value": "45"},
+    "HEXA_MAX_ATTACKS": {"value": "10"},
+    "HEXA_MAX_THROWS": {"value": "30"}
+  }
+}
