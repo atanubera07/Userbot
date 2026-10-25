@@ -116,7 +116,14 @@ After 15 minutes without inbound HTTP or WebSocket traffic, Render may put the
 service to sleep even while the userbot is communicating with Telegram. Its
 outbound Telegram connection does not count as incoming web traffic. Open the
 URL again when you want to use it; hunting still requires an explicit command
-after a restart. This package does not send artificial keep-alive requests.
+after a restart.
+
+To schedule external HTTP requests every 15 minutes, use the optional free
+[cron-job.org monitor](MONITOR.md). Its one-time setup script runs locally and
+keeps the scheduler separate from Render. It does not send Telegram messages.
+The scheduler must be activated with your cron-job.org account; adding the script
+to GitHub alone does not activate it. Ten minutes is an available option if you
+want more margin before Render's 15-minute idle threshold.
 
 ## Updates without overlapping Telegram sessions
 

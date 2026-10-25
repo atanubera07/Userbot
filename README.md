@@ -11,6 +11,10 @@ the service after 15 minutes without inbound traffic; open its URL to wake it,
 then start your chosen mode in Telegram. Hunting stops while the service sleeps.
 The GitHub connection named `atanu` belongs to account `atanubera07`.
 
+For automatic web requests every 15 minutes, use the optional
+[free external monitor](MONITOR.md). Run `setup_render_monitor.py` once locally
+with your own cron-job.org API key. It does not activate until you configure it.
+
 [Deploy Userbot to Render Free](https://render.com/deploy?repo=https://github.com/atanubera07/Userbot)
 
 ## Install and sign in
@@ -174,7 +178,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-221 offline tests passed. Tests include real Telegram-library
+237 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
