@@ -26,6 +26,32 @@ class HeadlessConfigurationTests(unittest.IsolatedAsyncioTestCase):
                 await main(non_interactive=True)
 
 
+class LocalCredentialTests(unittest.TestCase):
+    def test_missing_dotenv_prompts_for_credentials_locally(self):
+        from generate_session import login_credentials
+        with patch.dict(os.environ, {}, clear=True), \
+                patch('builtins.input', return_value='12345') as api_input, \
+                patch('generate_session.getpass.getpass', return_value='a' * 32) as hash_input:
+            self.assertEqual(login_credentials(), (12345, 'a' * 32))
+        api_input.assert_called_once()
+        hash_input.assert_called_once()
+
+    def test_existing_credentials_do_not_prompt(self):
+        from generate_session import login_credentials
+        with patch.dict(os.environ, {'TELEGRAM_API_ID': '12345', 'TELEGRAM_API_HASH': 'a' * 32}, clear=True), \
+                patch('builtins.input') as api_input, patch('generate_session.getpass.getpass') as hash_input:
+            self.assertEqual(login_credentials(), (12345, 'a' * 32))
+        api_input.assert_not_called()
+        hash_input.assert_not_called()
+
+    def test_invalid_credentials_are_rejected_before_telegram_connects(self):
+        from generate_session import login_credentials
+        for api_id, api_hash in [('0', 'a' * 32), ('word', 'a' * 32), ('12345', 'bad-hash')]:
+            with patch.dict(os.environ, {'TELEGRAM_API_ID': api_id, 'TELEGRAM_API_HASH': api_hash}, clear=True):
+                with self.assertRaises(ValueError):
+                    login_credentials()
+
+
 @unittest.skipIf(telethon is None, 'Install requirements.txt to test the hosting login path')
 class HeadlessLoginTests(unittest.IsolatedAsyncioTestCase):
     def client(self, authorized):

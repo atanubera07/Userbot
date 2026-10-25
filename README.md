@@ -166,7 +166,7 @@ flows, mode switching, limits, cancellation, and manual pauses. They do not log 
 to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
-Verified with Python 3.12 and Telethon 1.45.0: 186 offline tests passed. Tests include real Telethon
+Verified with Python 3.12 and Telethon 1.45.0: 189 offline tests passed. Tests include real Telethon
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -180,7 +180,7 @@ excluded by `.gitignore`. There is no need to upload the ZIP itself.
 
 Hosting requires a private StringSession because cloud workers cannot prompt for
 your phone number and login code. On your own computer or Termux, install the
-requirements, fill in your API credentials in `.env`, and run:
+requirements and run:
 
 ```bash
 python generate_session.py
@@ -189,6 +189,10 @@ python generate_session.py
 This logs in interactively in your local terminal and writes `.session-string`
 with private file permissions. Copy that file's contents into the host's secret
 environment variable named `TELEGRAM_SESSION_STRING`.
+
+The generator asks for your API ID and API hash if they are missing, so it does
+not need a `.env` file. Existing environment variables or a local `.env` still
+work. To view dotfiles in Termux, use `ls -a` instead of `ls`.
 
 Set these hosting variables:
 

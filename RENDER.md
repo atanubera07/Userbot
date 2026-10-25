@@ -20,15 +20,18 @@ A private repository works when your Render account can access it. Keep `.env`,
 
 ## 2. Generate your private Telegram session
 
-On your own computer or Termux, follow the installation steps in `README.md`,
-fill your API application credentials into `.env`, then run:
+On your own computer or Termux, install the requirements and run:
 
 ```bash
+python -m pip install -r requirements.txt
 python generate_session.py
 ```
 
-Enter your Telegram phone number, login code, and two-step password locally when
-asked. The script saves the result in `.session-string`. You will copy its
+The generator asks for your API ID and API hash from
+[my.telegram.org/apps](https://my.telegram.org/apps) if they are not configured.
+It does not need a `.env` file. Enter your Telegram phone number, login code, and
+two-step password locally when asked. The script saves the result in
+`.session-string`. You will copy its
 contents directly into Render's secret settings. Do not upload that file to
 GitHub or paste its contents into a chat.
 
