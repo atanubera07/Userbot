@@ -11,7 +11,7 @@ the service after 15 minutes without inbound traffic; open its URL to wake it,
 then start your chosen mode in Telegram. Hunting stops while the service sleeps.
 The GitHub connection named `atanu` belongs to account `atanubera07`.
 
-For automatic web requests every 15 minutes, use the optional
+For automatic web requests every 10 minutes, use the optional
 [free external monitor](MONITOR.md). Run `setup_render_monitor.py` once locally
 with your own cron-job.org API key. It does not activate until you configure it.
 

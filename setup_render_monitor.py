@@ -26,7 +26,7 @@ class _NoRedirects(HTTPRedirectHandler):
         return None
 
 
-def make_job(url=DEFAULT_URL, interval=15):
+def make_job(url=DEFAULT_URL, interval=10):
     if interval not in (10, 15):
         raise SetupError('The interval must be 10 or 15 minutes.')
     try:
@@ -140,8 +140,8 @@ def _api_key():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url', default=DEFAULT_URL, help='HTTPS health endpoint')
-    parser.add_argument('--interval', type=int, choices=(10, 15), default=15,
-                        help='Request interval in minutes (default: 15; 10 gives an idle-time margin)')
+    parser.add_argument('--interval', type=int, choices=(10, 15), default=10,
+                        help='Request interval in minutes (default: 10; 15 leaves no idle-time margin)')
     parser.add_argument('--dry-run', action='store_true', help='Print the job JSON without credentials or network access')
     args = parser.parse_args(argv)
     try:

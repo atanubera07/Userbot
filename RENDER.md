@@ -118,12 +118,12 @@ outbound Telegram connection does not count as incoming web traffic. Open the
 URL again when you want to use it; hunting still requires an explicit command
 after a restart.
 
-To schedule external HTTP requests every 15 minutes, use the optional free
+To schedule external HTTP requests every 10 minutes, use the optional free
 [cron-job.org monitor](MONITOR.md). Its one-time setup script runs locally and
 keeps the scheduler separate from Render. It does not send Telegram messages.
 The scheduler must be activated with your cron-job.org account; adding the script
-to GitHub alone does not activate it. Ten minutes is an available option if you
-want more margin before Render's 15-minute idle threshold.
+to GitHub alone does not activate it. Ten minutes leaves a margin before Render's
+15-minute idle threshold; an exact 15-minute schedule can slip past that cutoff.
 
 ## Updates without overlapping Telegram sessions
 

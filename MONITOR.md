@@ -1,7 +1,7 @@
 # Automatic web requests for Render
 
 This optional setup uses the free [cron-job.org](https://cron-job.org/en/) service
-to request `https://hexa-userbot.onrender.com/healthz` every **15 minutes**.
+to request `https://hexa-userbot.onrender.com/healthz` every **10 minutes**.
 Requests come from its servers, so your phone and the userbot do not need to run
 the scheduler. No Telegram credentials are sent to cron-job.org.
 
@@ -20,7 +20,7 @@ the scheduler. No Telegram credentials are sent to cron-job.org.
    updates a job named **HeXa Render monitor**, then verifies its saved settings.
    The key is not saved in a file or sent to your Render service.
 5. Open **Cronjobs** in the Console. Confirm the job is enabled and use its test
-   run, then check the execution history after the next quarter hour.
+   run, then check the execution history after the next scheduled request.
 
 The script uses only Python's standard library; it runs separately from the bot
 and does not need `requirements.txt`. Run it once: you can close Termux afterward.
@@ -38,12 +38,13 @@ Preview the exact request configuration without an API key or network access:
 python setup_render_monitor.py --dry-run
 ```
 
-The default schedule runs at minutes **00, 15, 30, and 45** of every hour, in UTC.
-Render may sleep at the same 15-minute boundary, so this interval can still allow
-brief interruptions. To give requests more margin, explicitly choose 10 minutes:
+The default schedule runs at minutes **00, 10, 20, 30, 40, and 50** of every hour,
+in UTC. This gives requests a margin before Render's 15-minute idle threshold.
+An exact 15-minute interval is also available, but scheduling delays can allow
+Render to sleep between requests:
 
 ```bash
-python setup_render_monitor.py --interval 10
+python setup_render_monitor.py --interval 15
 ```
 
 Re-running the script updates its existing matching job. It leaves unrelated jobs
@@ -63,7 +64,7 @@ In cron-job.org, create a cronjob with these settings:
 | URL | `https://hexa-userbot.onrender.com/healthz` |
 | Enabled | Yes |
 | Method | GET |
-| Schedule | Every 15 minutes, every day |
+| Schedule | Every 10 minutes, every day |
 | Request timeout | 30 seconds |
 | Save responses | Off |
 

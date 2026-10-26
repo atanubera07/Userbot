@@ -10,20 +10,20 @@ import setup_render_monitor as monitor
 
 
 class MonitorPayloadTests(unittest.TestCase):
-    def test_default_schedule_is_exactly_every_fifteen_minutes(self):
+    def test_default_schedule_is_exactly_every_ten_minutes(self):
         job = monitor.make_job()
         self.assertEqual(job['title'], 'HeXa Render monitor')
         self.assertEqual(job['url'], 'https://hexa-userbot.onrender.com/healthz')
         self.assertEqual(job['schedule'], {'timezone': 'UTC', 'expiresAt': 0,
-            'hours': [-1], 'mdays': [-1], 'minutes': [0, 15, 30, 45], 'months': [-1], 'wdays': [-1]})
+            'hours': [-1], 'mdays': [-1], 'minutes': [0, 10, 20, 30, 40, 50], 'months': [-1], 'wdays': [-1]})
         self.assertIs(job['enabled'], True)
         self.assertIs(job['saveResponses'], False)
         self.assertEqual(job['requestMethod'], 0)
         self.assertEqual(job['requestTimeout'], 30)
         self.assertNotIn('notification', job)
 
-    def test_ten_minute_margin_requires_explicit_selection(self):
-        self.assertEqual(monitor.make_job(interval=10)['schedule']['minutes'], [0, 10, 20, 30, 40, 50])
+    def test_fifteen_minute_interval_requires_explicit_selection(self):
+        self.assertEqual(monitor.make_job(interval=15)['schedule']['minutes'], [0, 15, 30, 45])
         with self.assertRaises(monitor.SetupError):
             monitor.make_job(interval=5)
 
@@ -168,7 +168,7 @@ class MonitorRequestTests(unittest.TestCase):
                 patch('setup_render_monitor.ensure_job', return_value=7), \
                 contextlib.redirect_stdout(output):
             self.assertEqual(monitor.main([]), 0)
-        self.assertEqual(output.getvalue(), f'Job 7: every 15 minutes, GET {monitor.DEFAULT_URL}\n')
+        self.assertEqual(output.getvalue(), f'Job 7: every 10 minutes, GET {monitor.DEFAULT_URL}\n')
 
     def test_missing_key_does_not_prompt_in_a_headless_process(self):
         with patch.dict('os.environ', {}, clear=True), \
