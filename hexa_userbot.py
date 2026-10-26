@@ -48,11 +48,56 @@ HELP_TEXT = (
     'answer pending verification manually.'
 )
 
-TARGETS = ['Starly', 'Metang', 'Golett', 'Fletchling', 'Bramblin', 'Quaxly', 'Treecko', 'Noibat', 'Tinkatink', 'Axew', 'Charcadet', 'Litwick', 'Beldum', 'Frigibax', 'Bagon', 'Bulbasaur', 'Swablu', 'Arrokuda', 'Porygon', 'Litten', 'Larvitar', 'Flabebe', 'Goomy', 'Slakoth', 'Vigoroth', 'Slaking', 'Timburr', 'Rookidee', 'Smoliv', 'Arboliva', 'Corviknight', 'Zorua', 'Gallade', 'Gardevoir', 'Archaludon', 'Duraludon', 'Gible', 'Garchomp', 'Talonflame', 'Magikarp', 'Gyarados', 'Manectric', 'Abra', 'Alakazam', 'Chandelure', 'Metagross', 'Venusaur', 'Charizard', 'Squirtle', 'Blastoise', 'Gastly', 'Gengar', 'Iron Thorns', 'Ampharos', 'Aerodactyl', 'Primarina', 'Florges', 'Meowscarada', 'Sprigatito', 'Incineroar', 'Kangaskhan', 'Kommo-o', 'Jangmo-o', 'Rufflet', 'Pawmi', 'Pawmot', 'Iron Leaves', 'Houndoom', 'Goodra', 'Impidimp', 'Grimmsnarl', 'Scyther', 'Scizor', 'Houndour', 'Frillish', 'Jellicent']
+TARGETS = [
+    'Starly', 'Golett', 'Bramblin', 'Quaxly', 'Treecko',
+    'Noibat', 'Tinkatink', 'Axew', 'Charcadet', 'Litwick',
+    'Beldum', 'Frigibax', 'Bagon', 'Salamence', 'Bulbasaur',
+    'Venusaur', 'Altaria', 'Arrokuda', 'Porygon', 'Litten',
+    'Larvitar', 'Tyranitar', 'Flabebe', 'Floette', 'Goomy',
+    'Slakoth', 'Timburr', 'Rookidee', 'Smoliv', 'Zorua',
+    'Gallade', 'Gardevoir', 'Archaludon', 'Gible', 'Garchomp',
+    'Gyarados', 'Manectric', 'Abra', 'Alakazam', 'Metagross',
+    'Charizard', 'Squirtle', 'Blastoise', 'Gastly', 'Gengar',
+    'Iron Thorns', 'Ampharos', 'Aerodactyl', 'Primarina', 'Sprigatito',
+    'Kangaskhan', 'Jangmo-o', 'Rufflet', 'Pawmi', 'Iron Leaves',
+    'Houndoom', 'Impidimp', 'Scyther', 'Scizor', 'Houndour',
+    'Frillish', 'Pichu', 'Raichu', 'Mankey', 'Golurk',
+    'Wimpod', 'Buneary', 'Lopunny', 'Scraggy', 'Sobble',
+    'Inteleon', 'Darumaka', 'Darmanitan Galar Zen', 'Hawlucha', 'Snorlax',
+    'Swampert', 'Mudkip', 'Krookodile', 'Sandile', 'Sirfetchd',
+    'Froakie', 'Greninja', 'Greninja [Ash]', 'Torchic', 'Blaziken',
+    'Chespin', 'Chesnaught', 'Drampa', 'Lycanroc', 'Aggron',
+    'Emboar', 'Venipede', 'Scolipede', 'Skarmory', 'Pinsir',
+    'Heracross', 'Iron Treads', 'Iron Bundle', 'Iron Hands', 'Iron Jugulis',
+    'Iron Moth', 'Iron Valiant', 'Iron Crown', 'Iron Boulder',
+]
 
 
 # Separate legendary encounter list: alert and pause; never merge into TARGETS.
-LEGENDARY_TARGETS = ['Articuno', 'Zapdos', 'Moltres', 'Mewtwo', 'Mew', 'Raikou', 'Entei', 'Suicune', 'Lugia', 'Ho-Oh', 'Celebi', 'Regirock', 'Regice', 'Registeel', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza', 'Jirachi', 'Deoxys', 'Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia', 'Phione', 'Manaphy', 'Darkrai', 'Shaymin', 'Arceus', 'Victini', 'Cobalion', 'Terrakion', 'Virizion', 'Tornadus', 'Thundurus', 'Landorus', 'Reshiram', 'Zekrom', 'Kyurem', 'Keldeo', 'Meloetta', 'Genesect', 'Xerneas', 'Yveltal', 'Zygarde', 'Diancie', 'Hoopa', 'Volcanion', 'Type: Null', 'Silvally', 'Tapu Koko', 'Tapu Lele', 'Tapu Bulu', 'Tapu Fini', 'Cosmog', 'Cosmoem', 'Solgaleo', 'Lunala', 'Necrozma', 'Magearna', 'Marshadow', 'Zeraora', 'Meltan', 'Melmetal', 'Nihilego', 'Buzzwole', 'Pheromosa', 'Xurkitree', 'Celesteela', 'Kartana', 'Guzzlord', 'Poipole', 'Naganadel', 'Stakataka', 'Blacephalon', 'Zacian', 'Zamazenta', 'Eternatus', 'Kubfu', 'Urshifu', 'Regieleki', 'Regidrago', 'Glastrier', 'Spectrier', 'Calyrex', 'Zarude', 'Enamorus', 'Wo-Chien', 'Chien-Pao', 'Ting-Lu', 'Chi-Yu', 'Koraidon', 'Miraidon', 'Okidogi', 'Munkidori', 'Fezandipiti', 'Ogerpon', 'Terapagos', 'Pecharunt']
+LEGENDARY_TARGETS = [
+    'Articuno', 'Zapdos', 'Moltres', 'Mewtwo', 'Mew',
+    'Raikou', 'Entei', 'Suicune', 'Lugia', 'Ho-Oh',
+    'Celebi', 'Regirock', 'Regice', 'Registeel', 'Latias',
+    'Latios', 'Kyogre', 'Groudon', 'Rayquaza', 'Jirachi',
+    'Deoxys', 'Uxie', 'Mesprit', 'Azelf', 'Dialga',
+    'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia',
+    'Phione', 'Manaphy', 'Darkrai', 'Shaymin', 'Arceus',
+    'Victini', 'Cobalion', 'Terrakion', 'Virizion', 'Tornadus',
+    'Thundurus', 'Landorus', 'Reshiram', 'Zekrom', 'Kyurem',
+    'Keldeo', 'Meloetta', 'Genesect', 'Xerneas', 'Yveltal',
+    'Zygarde', 'Diancie', 'Hoopa', 'Hoopa Unbound', 'Volcanion',
+    'Type: Null', 'Silvally', 'Tapu Koko', 'Tapu Lele', 'Tapu Bulu',
+    'Tapu Fini', 'Cosmog', 'Cosmoem', 'Solgaleo', 'Lunala',
+    'Necrozma', 'Magearna', 'Marshadow', 'Zeraora', 'Meltan',
+    'Melmetal', 'Nihilego', 'Buzzwole', 'Pheromosa', 'Xurkitree',
+    'Celesteela', 'Kartana', 'Guzzlord', 'Poipole', 'Naganadel',
+    'Stakataka', 'Blacephalon', 'Zacian', 'Zamazenta', 'Eternatus',
+    'Kubfu', 'Urshifu', 'Regieleki', 'Regidrago', 'Glastrier',
+    'Spectrier', 'Calyrex', 'Zarude', 'Enamorus', 'Wo-Chien',
+    'Chien-Pao', 'Ting-Lu', 'Chi-Yu', 'Koraidon', 'Miraidon',
+    'Okidogi', 'Munkidori', 'Fezandipiti', 'Ogerpon', 'Terapagos',
+    'Pecharunt',
+]
 
 
 def clean(text):

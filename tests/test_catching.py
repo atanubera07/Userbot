@@ -601,7 +601,9 @@ class CatchTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(normalized('Charizard'), expected)
         self.assertIn(normalized('Abra'), expected)
         self.assertIn(normalized('Iron Leaves'), expected)
-        self.assertIn(normalized('Jellicent'), expected)
+        self.assertIn(normalized('Greninja [Ash]'), expected)
+        self.assertIn(normalized('Darmanitan Galar Zen'), expected)
+        self.assertNotIn(normalized('Jellicent'), expected)
         self.assertNotIn(normalized('Ho-Oh'), expected)
         self.assertNotIn(normalized('Mewtwo'), expected)
         self.assertEqual(len(TARGETS), len(expected))
@@ -1079,7 +1081,8 @@ class CatchTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.c.running)
 
     async def test_parsers(self):
-        for name in ['Ho-Oh', 'Tapu Koko', 'Farfetch’d', 'Porygon-Z', 'Flabébé']:
+        for name in ['Ho-Oh', 'Tapu Koko', 'Farfetch’d', 'Porygon-Z', 'Flabébé',
+                     'Hoopa Unbound', 'Greninja [Ash]', 'Darmanitan Galar Zen', 'Sirfetchd']:
             self.assertEqual(encounter_name(f'A wild {name} (Lv. 23) has appeared'), name)
             self.assertEqual(WILD.search(self.caption(name=name)).group(1), name)
         self.assertEqual(normalized('Flabébé'), normalized('Flabebe'))

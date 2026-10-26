@@ -108,7 +108,7 @@ python hexa_userbot.py --mode catch --autostart
 
 ## Catch mode
 
-- Uses the original `TARGETS` list near the top of `hexa_userbot.py`. Edit that
+- Uses your updated 104-name `TARGETS` list near the top of `hexa_userbot.py`. Edit that
   list before launching to change catch targets. Unlisted ordinary species are
   skipped with another `/hunt`.
 - Uses the lowest listed positive move power to weaken targets whose maximum
@@ -129,6 +129,8 @@ Move power alone does not predict damage. Weakening can still knock out a target
 
 Shiny text, listed legendary encounters, Halloween forms, verification questions,
 daily hunt limits, unsupported screens, and action errors pause automation.
+The legendary list contains your 106 names, including Hoopa Unbound, and is
+kept separate from catch targets.
 You handle these encounters and verification questions manually. They do not
 resume automatically; send a mode command or `.resume` after resolving the situation.
 The userbot never generates or submits verification answers.
