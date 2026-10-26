@@ -6,11 +6,17 @@ their selected library; this adapter never converts or exports a supplied string
 import asyncio
 import binascii
 import logging
+import secrets
 import struct
 from pathlib import Path
 from types import SimpleNamespace
 
 LOG = logging.getLogger('hexa')
+
+
+def secure_message_id():
+    """Unique across processes; Telegram's random_id is a signed 64-bit integer."""
+    return secrets.randbelow((1 << 63) - 1) + 1
 
 
 def peer_id(peer):
@@ -62,6 +68,11 @@ class PyrogramTransport:
         self.raw = Client(name=name, workdir=str(path.parent), api_id=api_id, api_hash=api_hash,
                           session_string=session_string or None, in_memory=bool(session_string),
                           sleep_threshold=0, workers=4, parse_mode=ParseMode.DISABLED)
+        # Pyrogram 2.0.106 uses a seconds-based counter for random_id. Independent
+        # deployments can produce identical IDs when a shared command makes them
+        # post to the same group together. Change only this client's application
+        # message-ID hook; MTProto packet IDs and retries retain their own IDs.
+        self.raw.rnd_id = secure_message_id
         self._authorized = False
         self._closed = asyncio.Event()
         self._update_state = None
@@ -219,10 +230,19 @@ class PyrogramTransport:
 
     async def send_message(self, peer, text, parse_mode=None):
         from pyrogram.enums import ParseMode
+        from pyrogram.errors import RandomIdDuplicate
 
         # Controller's parse_mode=None means literal text, not Pyrogram's
         # Markdown+HTML default. Notifications must not interpret game text.
-        return self.wrap(await self.raw.send_message(peer_id(peer), text, parse_mode=ParseMode.DISABLED))
+        try:
+            result = await self.raw.send_message(peer_id(peer), text, parse_mode=ParseMode.DISABLED)
+        except RandomIdDuplicate:
+            # Retry once only when Telegram explicitly rejects an ID collision.
+            # The high-level call obtains a fresh random_id. Other errors and
+            # uncertain network outcomes must not resend a possibly delivered hunt.
+            LOG.warning('Telegram rejected a duplicate message ID; retrying once with a fresh ID.')
+            result = await self.raw.send_message(peer_id(peer), text, parse_mode=ParseMode.DISABLED)
+        return self.wrap(result)
 
     async def get_messages(self, peer, ids=None, limit=None):
         if limit is not None:

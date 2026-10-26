@@ -189,7 +189,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-259 offline tests passed. Tests include real Telegram-library
+265 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -309,3 +309,9 @@ Pyrogram update gaps are recovered through Telegram GetDifference, including
 missed owner commands and bot messages. Expired backlogs reset to fresh updates;
 resend commands after a restart. Account identity and accepted command actions
 appear in private service logs, without API credentials or session strings.
+
+Pyrogram uses securely randomized message IDs so simultaneous alerts from
+separate deployments do not share its default timestamp-based IDs. If Telegram
+explicitly rejects an ID collision, the adapter retries that message once with
+a fresh ID. Other delivery errors still use the Saved Messages fallback;
+permission failures and uncertain network outcomes are not retried by the adapter.
