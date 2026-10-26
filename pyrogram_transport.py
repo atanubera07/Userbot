@@ -5,9 +5,12 @@ their selected library; this adapter never converts or exports a supplied string
 """
 import asyncio
 import binascii
+import logging
 import struct
 from pathlib import Path
 from types import SimpleNamespace
+
+LOG = logging.getLogger('hexa')
 
 
 def peer_id(peer):
@@ -61,6 +64,68 @@ class PyrogramTransport:
                           sleep_threshold=0, workers=4, parse_mode=ParseMode.DISABLED)
         self._authorized = False
         self._closed = asyncio.Event()
+        self._update_state = None
+        self._update_lock = asyncio.Lock()
+        self._original_updates = getattr(self.raw, 'handle_updates', None)
+        if self._original_updates is not None:
+            self.raw.handle_updates = self._handle_updates
+
+    def _remember_state(self, state):
+        self._update_state = SimpleNamespace(pts=state.pts, qts=state.qts,
+                                             date=state.date, seq=state.seq)
+
+    async def _handle_updates(self, updates):
+        """Recover Telegram gaps instead of silently discarding UpdatesTooLong."""
+        from pyrogram import raw
+        async with self._update_lock:
+            if isinstance(updates, raw.types.UpdatesTooLong):
+                await self._recover_updates()
+                return
+            await self._original_updates(updates)
+            if self._update_state is None:
+                return
+            state = self._update_state
+            packets = getattr(updates, 'updates', [getattr(updates, 'update', updates)])
+            for packet in packets:
+                # Channel pts are independent of the account-wide updates cursor.
+                if 'Channel' not in type(packet).__name__:
+                    state.pts = max(state.pts, getattr(packet, 'pts', None) or 0)
+                state.qts = max(state.qts, getattr(packet, 'qts', None) or 0)
+            state.date = max(state.date, getattr(updates, 'date', None) or 0)
+            state.seq = max(state.seq, getattr(updates, 'seq', None) or 0)
+
+    async def _recover_updates(self):
+        from pyrogram import raw
+        if self._update_state is None:
+            self._remember_state(await self.raw.invoke(raw.functions.updates.GetState()))
+            return
+        LOG.warning('Telegram update gap detected; recovering missed updates')
+        for _ in range(10):
+            state = self._update_state
+            difference = await self.raw.invoke(raw.functions.updates.GetDifference(
+                pts=state.pts, date=state.date, qts=state.qts))
+            if isinstance(difference, raw.types.updates.DifferenceEmpty):
+                state.date, state.seq = difference.date, difference.seq
+                LOG.info('Telegram update recovery complete')
+                return
+            if isinstance(difference, raw.types.updates.DifferenceTooLong):
+                # Telegram no longer retains this backlog. Establish a fresh
+                # cursor; never replay old commands or invent missed actions.
+                self._remember_state(await self.raw.invoke(raw.functions.updates.GetState()))
+                LOG.warning('Telegram backlog expired; fresh updates enabled. Resend your command.')
+                return
+            next_state = getattr(difference, 'intermediate_state', None) or difference.state
+            packets = [raw.types.UpdateNewMessage(message=message, pts=next_state.pts, pts_count=0)
+                       for message in difference.new_messages]
+            packets.extend(difference.other_updates)
+            await self._original_updates(raw.types.Updates(
+                updates=packets, users=difference.users, chats=difference.chats,
+                date=next_state.date, seq=next_state.seq))
+            self._remember_state(next_state)
+            if isinstance(difference, raw.types.updates.Difference):
+                LOG.info('Telegram update recovery complete')
+                return
+        LOG.warning('Telegram update backlog remains; continuing on the next gap notification')
 
     async def start(self):
         self._closed.clear()
@@ -91,7 +156,9 @@ class PyrogramTransport:
         try:
             # Match the authorized branch of Pyrogram Client.start(), while
             # deliberately omitting its interactive authorization branch.
-            await self.raw.invoke(raw.functions.updates.GetState())
+            state = await self.raw.invoke(raw.functions.updates.GetState())
+            if all(isinstance(getattr(state, key, None), int) for key in ('pts', 'qts', 'date', 'seq')):
+                self._remember_state(state)
             self.raw.me = await self.raw.get_me()
             await self.raw.initialize()
         except Unauthorized:

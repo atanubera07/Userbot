@@ -178,7 +178,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-237 offline tests passed. Tests include real Telegram-library
+241 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -293,3 +293,8 @@ invocations do not provide a continuously running Telegram listener.
 
 See [Netlify function limits](https://docs.netlify.com/build/functions/configuration/)
 and [Vercel function limits](https://vercel.com/docs/functions/limitations).
+
+Pyrogram update gaps are recovered through Telegram GetDifference, including
+missed owner commands and bot messages. Expired backlogs reset to fresh updates;
+resend commands after a restart. Account identity and accepted command actions
+appear in private service logs, without API credentials or session strings.

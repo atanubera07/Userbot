@@ -358,6 +358,7 @@ class Controller:
         if action is None:
             parts = text.split()
             action = parts[1] if len(parts) == 2 else 'help'
+        LOG.info('Owner command received: %s', action)
         async with self.command_lock:
             if action in MODES:
                 await self.start(action)
@@ -375,6 +376,7 @@ class Controller:
                 )
             else:
                 await self.client.send_message(event.chat_id, HELP_TEXT, parse_mode=None)
+            LOG.info('Owner command completed: %s', action)
 
     async def pause_verification(self, text, message_id=None):
         self.verification_text = clean(text)
@@ -1122,6 +1124,7 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
                 await client.start()
             profile = await client.get_me()
             owner = profile.id
+            LOG.info('Telegram account connected: id=%s username=%s', owner, getattr(profile, 'username', None) or '(none)')
             peer = await resolve_bot(client, username, bot_id)
             try:
                 alert_peer = await resolve_alert_chat(client, settings.notify)
