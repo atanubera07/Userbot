@@ -251,7 +251,7 @@ class PyrogramTransport:
                     and not getattr(message, 'outgoing', False))
 
         async def from_owner(_, client, message):
-            return (getattr(getattr(message, 'chat', None), 'id', None) in (owner, bot_id)
+            return (getattr(getattr(message, 'chat', None), 'id', None) is not None
                     and getattr(getattr(message, 'from_user', None), 'id', None) == owner)
 
         async def receive(client, message):
@@ -273,8 +273,8 @@ class PyrogramTransport:
             await controller.command(SimpleNamespace(
                 raw_text=str(getattr(message, 'text', None) or getattr(message, 'caption', None) or ''),
                 # Saved Messages may have outgoing=False in Pyrogram. Ownership
-                # is established above using the actual sender and control chat.
-                out=True, chat_id=message.chat.id, fwd_from=forwarded,
+                # is established above using the actual sender.
+                out=True, sender_id=owner, chat_id=message.chat.id, fwd_from=forwarded,
                 via_bot_id=getattr(via, 'id', None)))
 
         game_filter = filters.create(from_game, name='HeXamonIncoming')

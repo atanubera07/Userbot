@@ -100,7 +100,7 @@ owner-only Telegram commands.
 Open your service's `https://…onrender.com` URL. Waking a sleeping service usually
 takes about one minute. Wait for its Telegram connection to be ready, finish any
 existing encounter or verification manually, then send one of these commands in
-Saved Messages or the HeXamon private chat:
+any chat from the logged-in account:
 
 ```text
 .hexa battle

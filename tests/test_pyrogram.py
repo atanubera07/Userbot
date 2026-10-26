@@ -189,10 +189,26 @@ class PyrogramAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(event.out)
         self.assertEqual((event.chat_id, event.raw_text), (123, '.hexa catch'))
         for other in [self.message('.hexa catch', chat=123, sender=789),
-                      self.message('.hexa catch', chat=-100123, sender=123)]:
+                      self.message('.hexa catch', chat=-100123, sender=789)]:
             self.assertFalse(await handler.filters(self.raw, other))
             await handler.callback(self.raw, other)
         self.assertEqual(controller.command.await_count, 1)
+
+    async def test_owner_status_from_private_and_group_chats_replies_in_that_chat(self):
+        from hexa_userbot import Controller, Settings
+        controller = Controller(self.transport, 572621020, 123, Settings(notify='me'))
+        self.transport.register_controller_handlers(controller, 572621020, 123)
+        handler = self.raw.add_handler.call_args_list[-1].args[0]
+        for chat in [789, -100123, -100987]:
+            message = self.message('.hexa status', chat=chat, sender=123, outgoing=True)
+            self.assertTrue(await handler.filters(self.raw, message))
+            await handler.callback(self.raw, message)
+            self.assertEqual(self.raw.send_message.await_args.args[0], chat)
+        for sender in [789, None]:
+            message = self.message('.hexa battle', chat=-100123, sender=sender, outgoing=True)
+            await handler.callback(self.raw, message)
+        self.assertFalse(controller.running)
+        self.assertEqual(self.raw.send_message.await_count, 3)
 
     async def test_forwarded_and_inline_command_metadata_reaches_owner_guard(self):
         from hexa_userbot import Controller, Settings

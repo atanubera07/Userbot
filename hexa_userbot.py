@@ -1,7 +1,7 @@
 """HeXamon userbot with separate battle and catch modes.
 
 Python 3.10+, Telethon 1.x or Pyrogram 2.x. Configure .env, then run python hexa_userbot.py.
-Commands in Saved Messages or the HeXamon chat:
+Commands sent by the logged-in account in any chat:
     .hexa battle   battle ordinary Pokemon without catching
     .hexa catch    catch listed targets, weakening when needed
     .hexa stop    pause the worker
@@ -36,7 +36,7 @@ MODES = {'battle', 'catch'}
 LIBRARIES = {'telethon', 'pyrogram'}
 COMMAND_PATTERN = re.compile(r'(?i)^(?:\.hexa(?:\s+[^\r\n]*)?|/(?:go|stop|status))\s*$')
 HELP_TEXT = (
-    'HeXamon commands (Saved Messages or the HeXamon chat):\n'
+    'HeXamon commands (your own messages in any chat):\n'
     '.hexa battle — battle all ordinary wild Pokémon; catching disabled\n'
     '.hexa catch — catch listed targets, weakening when needed\n'
     '.hexa stop — pause automation\n'
@@ -343,11 +343,11 @@ class Controller:
         await self.note(f'Started {self.mode} mode. Finish any pre-existing battle and answer any pending verification manually. Verification questions, legendary encounters, Halloween forms, shiny text or unsupported controls pause automation.')
 
     async def command(self, event):
-        # Require an outgoing command in one of the two control chats. Messages
-        # from other people, groups, and forwarded messages cannot control the worker.
-        peer_id = getattr(self.peer, 'id', self.peer)
+        # Transports establish ownership. Never accept another sender, forwards,
+        # or inline-bot messages even when they appear in a shared group.
         if (not getattr(event, 'out', False)
-                or getattr(event, 'chat_id', None) not in (self.owner, peer_id)
+                or getattr(event, 'sender_id', self.owner) != self.owner
+                or getattr(event, 'chat_id', None) is None
                 or getattr(event, 'fwd_from', None) is not None
                 or getattr(event, 'via_bot_id', None) is not None):
             return
@@ -958,7 +958,7 @@ def register_handlers(client, controller, peer, owner):
     client.add_event_handler(controller.receive, events.NewMessage(chats=peer, from_users=peer, incoming=True))
     client.add_event_handler(controller.receive, events.MessageEdited(chats=peer, from_users=peer, incoming=True))
     client.add_event_handler(controller.command, events.NewMessage(
-        chats=[owner, peer], outgoing=True, forwards=False, pattern=COMMAND_PATTERN))
+        from_users=owner, outgoing=True, forwards=False, pattern=COMMAND_PATTERN))
 
 
 class HealthServer:
@@ -1012,7 +1012,7 @@ class HealthServer:
                     body = json.dumps({
                         'service': 'hexa-userbot',
                         'status': 'ready' if self.ready else 'starting',
-                        'controls': 'Use .hexa commands in Telegram Saved Messages.',
+                        'controls': 'Send your own .hexa commands in any Telegram chat.',
                     }).encode() + b'\n'
             except (ValueError, UnicodeDecodeError, asyncio.IncompleteReadError,
                     asyncio.LimitOverrunError, asyncio.TimeoutError):
@@ -1138,7 +1138,7 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             if health is not None:
                 health.ready = True
             print(f'Ready: selected mode={controller.mode}; library={library}; {len(settings.targets)} catch targets.\n'
-                  'Send .hexa battle, .hexa catch, or .hexa help in Saved Messages or the HeXamon chat.\n'
+                  'Send your own .hexa battle, .hexa catch, or .hexa help in any Telegram chat.\n'
                   'Finish any existing encounter and pending verification manually before starting.')
             if autostart:
                 await controller.start()

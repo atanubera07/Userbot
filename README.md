@@ -53,8 +53,8 @@ No session maker website is needed.
 
 Open `@HeXamonbot` and press Start with that account first. Finish any existing
 encounter and answer any pending game verification before starting automation.
-After the terminal prints `Ready`, send a command in **Saved Messages** or the
-**HeXamon private chat**.
+After the terminal prints `Ready`, send a command from that account in any chat
+where you can send messages, including Saved Messages, private chats, and groups.
 
 ## Commands
 
@@ -68,7 +68,8 @@ After the terminal prints `Ready`, send a command in **Saved Messages** or the
 | `/go` | Start the currently selected mode |
 | `/stop`, `/status` | Short aliases for stop and status |
 
-Only your outgoing commands in those two chats are accepted. Forwarded commands
+Only commands sent by the logged-in account are accepted, in any chat. Each
+account controls its own userbot. Forwarded commands
 and commands sent through inline bots are ignored. Status and help replies appear
 in the chat where you sent the command. Start/stop and encounter alerts use your
 configured notification destination.
@@ -178,7 +179,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-241 offline tests passed. Tests include real Telegram-library
+243 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.

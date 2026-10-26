@@ -142,11 +142,18 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unauthorized_and_forwarded_commands_do_nothing(self):
         for event in [self.command('.hexa catch', out=False),
-                      self.command('.hexa catch', chat_id=-100456),
+                      self.command('.hexa catch', chat_id=-100456, sender_id=789),
+                      self.command('.hexa catch', chat_id=None),
                       self.command('.hexa catch', fwd_from=NS()),
                       self.command('.hexa catch', via_bot_id=789)]:
             await self.c.command(event)
         self.client.send_message.assert_not_awaited()
+        self.assertFalse(self.c.running)
+
+    async def test_owner_status_replies_in_any_source_chat(self):
+        for chat in [789, -100456, -100987]:
+            await self.c.command(self.command('.hexa status', chat_id=chat, sender_id=123))
+            self.assertEqual(self.client.send_message.await_args.args[0], chat)
         self.assertFalse(self.c.running)
 
     async def test_commands_in_bot_chat_with_entity_peer(self):

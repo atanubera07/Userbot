@@ -32,15 +32,15 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
             message.fwd_from = types.MessageFwdHeader(date=None)
         return (events.MessageEdited if edited else events.NewMessage).Event(message)
 
-    async def test_mode_and_legacy_commands_match_in_saved_and_bot_chats(self):
-        for chat in [123, 572621020]:
+    async def test_owner_commands_match_in_saved_bot_and_other_chats(self):
+        for chat in [123, 572621020, 789, -100456]:
             for command in ['.hexa battle', '.hexa catch', '.hexa stop', '.hexa status',
                             '.hexa help', '/go', '/stop', '/status', '.HEXA CATCH']:
                 event = self.event(command, chat=chat)
                 self.assertTrue(self.commands.filter(event), command)
 
-    async def test_other_chats_incoming_and_forwarded_commands_are_ignored(self):
-        for event in [self.event('.hexa catch', chat=789),
+    async def test_other_senders_incoming_and_forwarded_commands_are_ignored(self):
+        for event in [self.event('.hexa catch', chat=789, sender=789),
                       self.event('.hexa catch', outgoing=False),
                       self.event('.hexa catch', forwarded=True),
                       self.event('hi .hexa catch'), self.event('/gopher')]:
