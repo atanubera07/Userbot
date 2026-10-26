@@ -34,8 +34,8 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_owner_commands_match_in_saved_bot_and_other_chats(self):
         for chat in [123, 572621020, 789, -100456]:
-            for command in ['.battle', '. battle', '.caught', '.stop', '.status',
-                            '.help', '.resume', '.CAUGHT']:
+            for command in ['.battle', '. battle', '.catch', '. catch', '.caught', '.stop', '.status',
+                            '.help', '.resume', '.CAUGHT', '.CATCH']:
                 event = self.event(command, chat=chat)
                 self.assertTrue(self.commands.filter(event), command)
 

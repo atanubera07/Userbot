@@ -110,7 +110,7 @@ be able to see the message):
 
 ```text
 .battle
-.caught
+.catch
 .status
 .stop
 ```

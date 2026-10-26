@@ -41,7 +41,7 @@ class SudoCommandTests(unittest.IsolatedAsyncioTestCase):
                               chat_id=-100789, fwd_from=None, via_bot_id=None), **overrides))
 
     async def test_sudo_can_start_stop_and_resume_both_modes(self):
-        for command, mode in [('.battle', 'battle'), ('.caught', 'catch')]:
+        for command, mode in [('.battle', 'battle'), ('.catch', 'catch'), ('.caught', 'catch')]:
             await self.c.command(self.event(command))
             await asyncio.sleep(0)
             self.assertTrue(self.c.running)
