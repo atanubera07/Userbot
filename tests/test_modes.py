@@ -32,7 +32,7 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
         await self.c.stop(notify=False)
 
     def command(self, text, **overrides):
-        return NS(**dict(dict(raw_text=text, out=True, chat_id=123,
+        return NS(**dict(dict(raw_text=text, out=True, chat_id=123, sender_id=123,
                               fwd_from=None, via_bot_id=None), **overrides))
 
     def message(self, text, labels=(), ident=3, rows=None):

@@ -221,6 +221,38 @@ class PyrogramAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(controller.running)
         self.raw.send_message.assert_not_awaited()
 
+    async def test_sudo_incoming_commands_use_actual_sender_and_control_the_bot(self):
+        from hexa_userbot import Controller, Settings
+        controller = Controller(self.transport, 572621020, 123,
+                                Settings(sudo_users=frozenset({456}), notify='me'))
+        self.transport.register_controller_handlers(controller, 572621020, 123)
+        handler = self.raw.add_handler.call_args_list[-1].args[0]
+        for chat in [456, -100789]:
+            message = self.message('.status', chat=chat, sender=456, outgoing=False)
+            self.assertTrue(await handler.filters(self.raw, message))
+            await handler.callback(self.raw, message)
+            self.assertEqual(self.raw.send_message.await_args.args[0], chat)
+            self.assertIn('Account 123', self.raw.send_message.await_args.args[1])
+        count = self.raw.send_message.await_count
+        for extra in [{'forward_from': NS(id=789)}, {'via_bot': NS(id=888)},
+                      {'forward_sender_name': 'somebody'}, {'forward_date': 1}]:
+            await handler.callback(self.raw, self.message('.battle', chat=-100789, sender=456, **extra))
+        for sender in [789, None, -100789]:
+            message = self.message('.battle', chat=-100789, sender=sender, outgoing=True)
+            self.assertFalse(await handler.filters(self.raw, message))
+            await handler.callback(self.raw, message)
+        self.assertEqual(self.raw.send_message.await_count, count)
+        self.assertFalse(controller.running)
+
+    async def test_sudo_wrapper_does_not_impersonate_the_logged_in_account(self):
+        controller = NS(receive=AsyncMock(), command=AsyncMock(), cfg=NS(sudo_users=frozenset({456})))
+        self.transport.register_controller_handlers(controller, 572621020, 123)
+        handler = self.raw.add_handler.call_args_list[-1].args[0]
+        await handler.callback(self.raw, self.message('.stop', chat=-100789, sender=456, outgoing=False))
+        event = controller.command.await_args.args[0]
+        self.assertEqual(event.sender_id, 456)
+        self.assertFalse(event.out)
+
     async def test_shared_controller_battles_and_catches_through_pyrogram_callbacks(self):
         from hexa_userbot import Controller, Settings, normalized
         messages = {}

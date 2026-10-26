@@ -70,10 +70,17 @@ where you can send messages, including Saved Messages, private chats, and groups
 A space after the dot is optional: `. battle` also starts battle mode. The old
 `.hexa ...` commands and `/go`, `/stop`, and `/status` are no longer accepted.
 
-Only commands sent by the logged-in account are accepted, in any chat. Each
-account controls its own userbot. Forwarded commands
+The logged-in account always has access. To allow other Telegram accounts to
+control this userbot, set `HEXA_SUDO_USERS` to their positive numeric user IDs,
+separated by commas, then redeploy. Leave it blank for owner-only access.
+Use the same list on multiple deployments to control them from one account:
+send a command in a shared group to control every userbot that can see it, or
+send it privately to a particular userbot account to control just that account.
+Messages in the sudo account's Saved Messages cannot reach other accounts.
+Usernames, anonymous group identities, forwarded commands,
 and commands sent through inline bots are ignored. Status and help replies appear
-in the chat where you sent the command. Start/stop and encounter alerts use your
+in the chat where you sent the command and include the userbot's account ID.
+Start/stop and encounter alerts include that ID and use your
 configured notification destination.
 
 To change modes, send `.stop`, finish the current encounter manually, then
@@ -151,6 +158,7 @@ messages. Resolution or delivery failures fall back to Saved Messages.
 | `HEXA_BOT_USERNAME` | `@HeXamonbot` |
 | `HEXA_BOT_ID` | Optional positive numeric bot identity check |
 | `HEXA_MODE` | `battle` or `catch`; default `battle` |
+| `HEXA_SUDO_USERS` | Optional comma-separated positive numeric user IDs; these accounts can use all controls |
 | `HEXA_BALL` | `Regular Ball`, `Great Ball`, `Ultra Ball`, or `Repeat Ball` |
 | `HEXA_ATTACK_MOVE` | Optional exact damaging move name; overrides move choice in both modes |
 | `HEXA_DELAY` | `5` seconds per click; minimum `3` |
@@ -181,7 +189,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-246 offline tests passed. Tests include real Telegram-library
+259 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.

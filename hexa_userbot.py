@@ -1,7 +1,7 @@
 """HeXamon userbot with separate battle and catch modes.
 
 Python 3.10+, Telethon 1.x or Pyrogram 2.x. Configure .env, then run python hexa_userbot.py.
-Commands sent by the logged-in account in any chat:
+Commands sent by the logged-in account or configured sudo users in any chat:
     .battle   battle ordinary Pokemon without catching
     .caught    catch listed targets, weakening when needed
     .stop    pause the worker
@@ -36,7 +36,7 @@ MODES = {'battle', 'catch'}
 LIBRARIES = {'telethon', 'pyrogram'}
 COMMAND_PATTERN = re.compile(r'(?i)^[ \t]*\.[ \t]*(battle|caught|resume|stop|status|help)[ \t]*\Z')
 HELP_TEXT = (
-    'HeXamon commands (your own messages in any chat):\n'
+    'HeXamon commands (account owner and configured sudo users):\n'
     '.battle — battle all ordinary wild Pokémon; catching disabled\n'
     '.caught — catch listed targets, weakening when needed\n'
     '.stop — pause automation\n'
@@ -204,6 +204,7 @@ class Settings:
     attack_move: str = ''
     notify: object = -1004490697963
     alert_tag: str = '@Kill_switch8'
+    sudo_users: frozenset = field(default_factory=frozenset)
 
     @classmethod
     def load(cls):
@@ -227,13 +228,19 @@ class Settings:
         alert_tag = os.getenv('HEXA_ALERT_TAG', '@Kill_switch8').strip()
         if not re.fullmatch(r'@[A-Za-z0-9_]{5,32}', alert_tag):
             raise ValueError('HEXA_ALERT_TAG must be an @username with 5–32 letters, digits or underscores')
+        sudo_text = os.getenv('HEXA_SUDO_USERS', '').strip()
+        sudo_ids = sudo_text.split(',') if sudo_text else []
+        if any(not re.fullmatch(r'[0-9]+', value.strip()) or int(value.strip()) <= 0
+               for value in sudo_ids):
+            raise ValueError('HEXA_SUDO_USERS must contain comma-separated positive numeric user IDs')
         return cls(targets={normalized(x) for x in TARGETS}, mode=selected_mode,
                    ball=ball, delay=number('HEXA_DELAY', 5, 3),
                    hunt_delay=number('HEXA_HUNT_DELAY', 1, 0.5),
                    max_throws=max(1, int(os.getenv('HEXA_MAX_THROWS', '30'))),
                    max_attacks=max(1, int(os.getenv('HEXA_MAX_ATTACKS', '10'))),
                    timeout=number('HEXA_TIMEOUT', 45, 1),
-                   attack_move=os.getenv('HEXA_ATTACK_MOVE', '').strip(), notify=notify, alert_tag=alert_tag)
+                   attack_move=os.getenv('HEXA_ATTACK_MOVE', '').strip(), notify=notify, alert_tag=alert_tag,
+                   sudo_users=frozenset(int(value.strip()) for value in sudo_ids))
 
 
 
@@ -292,7 +299,7 @@ class Controller:
 
     async def note(self, text):
         LOG.info('%s', text)
-        message = f'Hexa | {self.alert_tag}\n{text}'
+        message = f'Hexa | Account {self.owner} | {self.alert_tag}\n{text}'
         try:
             await self.client.send_message(self.alert_peer, message, parse_mode=None)
         except Exception:
@@ -343,10 +350,11 @@ class Controller:
         await self.note(f'Started {self.mode} mode. Finish any pre-existing battle and answer any pending verification manually. Verification questions, legendary encounters, Halloween forms, shiny text or unsupported controls pause automation.')
 
     async def command(self, event):
-        # Transports establish ownership. Never accept another sender, forwards,
-        # or inline-bot messages even when they appear in a shared group.
-        if (not getattr(event, 'out', False)
-                or getattr(event, 'sender_id', self.owner) != self.owner
+        # Recheck the actual sender here as well as in the transport filters.
+        sender = getattr(event, 'sender_id', None)
+        authorized = (sender == self.owner and getattr(event, 'out', False)
+                      or sender in self.cfg.sudo_users)
+        if (not authorized
                 or getattr(event, 'chat_id', None) is None
                 or getattr(event, 'fwd_from', None) is not None
                 or getattr(event, 'via_bot_id', None) is not None):
@@ -356,7 +364,7 @@ class Controller:
         if not match:
             return
         action = {'caught': 'catch', 'resume': 'start'}.get(match.group(1), match.group(1))
-        LOG.info('Owner command received: %s', action)
+        LOG.info('Authorized command received: %s; sender=%s', action, sender)
         async with self.command_lock:
             if action in MODES:
                 await self.start(action)
@@ -366,15 +374,16 @@ class Controller:
                 await self.stop()
             elif action == 'status':
                 await self.client.send_message(event.chat_id,
-                    f'{self.reason}; mode={self.mode}; stage={self.state}; '
+                    f'Account {self.owner}: {self.reason}; mode={self.mode}; stage={self.state}; '
                     f'target={self.selected_name or "none"}; encounter={self.encounter_mode}; '
                     f'ball={self.selected_ball}; throws={self.throws}/{self.cfg.max_throws}; '
                     f'attacks={self.attacks}/{self.cfg.max_attacks}; timeout recoveries={self.timeout_restarts}',
                     parse_mode=None,
                 )
             else:
-                await self.client.send_message(event.chat_id, HELP_TEXT, parse_mode=None)
-            LOG.info('Owner command completed: %s', action)
+                await self.client.send_message(event.chat_id,
+                    f'Account {self.owner}\n' + HELP_TEXT, parse_mode=None)
+            LOG.info('Authorized command completed: %s; sender=%s', action, sender)
 
     async def pause_verification(self, text, message_id=None):
         self.verification_text = clean(text)
@@ -955,8 +964,10 @@ def register_handlers(client, controller, peer, owner):
 
     client.add_event_handler(controller.receive, events.NewMessage(chats=peer, from_users=peer, incoming=True))
     client.add_event_handler(controller.receive, events.MessageEdited(chats=peer, from_users=peer, incoming=True))
+    sudo_users = getattr(getattr(controller, 'cfg', None), 'sudo_users', frozenset())
     client.add_event_handler(controller.command, events.NewMessage(
-        from_users=owner, outgoing=True, forwards=False, pattern=COMMAND_PATTERN))
+        from_users=sorted({owner, *sudo_users}), outgoing=None if sudo_users else True,
+        forwards=False, pattern=COMMAND_PATTERN))
 
 
 class HealthServer:
@@ -1010,7 +1021,7 @@ class HealthServer:
                     body = json.dumps({
                         'service': 'hexa-userbot',
                         'status': 'ready' if self.ready else 'starting',
-                        'controls': 'Send your own .help in any Telegram chat.',
+                        'controls': 'Send .help as the account owner or a configured sudo user.',
                     }).encode() + b'\n'
             except (ValueError, UnicodeDecodeError, asyncio.IncompleteReadError,
                     asyncio.LimitOverrunError, asyncio.TimeoutError):
@@ -1136,7 +1147,7 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             if health is not None:
                 health.ready = True
             print(f'Ready: selected mode={controller.mode}; library={library}; {len(settings.targets)} catch targets.\n'
-                  'Send your own .battle, .caught, or .help in any Telegram chat.\n'
+                  'Send .battle, .caught, or .help as the owner or a configured sudo user.\n'
                   'Finish any existing encounter and pending verification manually before starting.')
             if autostart:
                 await controller.start()

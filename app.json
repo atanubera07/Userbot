@@ -10,6 +10,7 @@
     "TELEGRAM_API_HASH": {"description": "Your API hash from my.telegram.org/apps", "required": true},
     "TELEGRAM_SESSION_STRING": {"description": "Generate locally with python generate_session.py", "required": true},
     "HEXA_MODE": {"description": "Initial mode: battle or catch", "value": "battle"},
+    "HEXA_SUDO_USERS": {"description": "Optional comma-separated Telegram user IDs allowed to control this userbot", "required": false},
     "HEXA_NOTIFY_CHAT": {"description": "Alert chat: me, group username, or signed chat ID", "value": "-1004490697963"},
     "HEXA_ALERT_TAG": {"description": "Notification recipient", "value": "@Kill_switch8"},
     "HEXA_BOT_USERNAME": {"value": "@HeXamonbot"},

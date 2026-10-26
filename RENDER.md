@@ -93,14 +93,20 @@ HTTP listener binds to `0.0.0.0` on that port, defaulting to `10000` locally.
 
 The service's public root URL shows basic information, and `/healthz` is its
 HTTP health endpoint. These endpoints do not control the userbot. Keep using the
-owner-only Telegram commands.
+Telegram commands from the account owner or configured sudo users.
+
+To control several userbots from one Telegram account, set `HEXA_SUDO_USERS`
+on each service to that account's numeric user ID. For several sudo users,
+separate their IDs with commas. Save and deploy to apply changes. The userbot's
+own account always retains access; removing an ID and redeploying revokes sudo.
 
 ## 4. Wake it and start a mode
 
 Open your service's `https://…onrender.com` URL. Waking a sleeping service usually
 takes about one minute. Wait for its Telegram connection to be ready, finish any
 existing encounter or verification manually, then send one of these commands in
-any chat from the logged-in account:
+any chat from the logged-in account or a configured sudo user (the userbot must
+be able to see the message):
 
 ```text
 .battle

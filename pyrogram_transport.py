@@ -250,9 +250,12 @@ class PyrogramTransport:
                     and getattr(getattr(message, 'from_user', None), 'id', None) == bot_id
                     and not getattr(message, 'outgoing', False))
 
-        async def from_owner(_, client, message):
+        sudo_users = getattr(getattr(controller, 'cfg', None), 'sudo_users', frozenset())
+        allowed_users = {owner, *sudo_users}
+
+        async def from_authorized_user(_, client, message):
             return (getattr(getattr(message, 'chat', None), 'id', None) is not None
-                    and getattr(getattr(message, 'from_user', None), 'id', None) == owner)
+                    and getattr(getattr(message, 'from_user', None), 'id', None) in allowed_users)
 
         async def receive(client, message):
             # Check again in the callback so directly dispatched messages cannot
@@ -263,22 +266,23 @@ class PyrogramTransport:
                     await controller.receive(SimpleNamespace(message=wrapped))
 
         async def command(client, message):
-            if not await from_owner(None, client, message):
+            if not await from_authorized_user(None, client, message):
                 return
             forwarded = (getattr(message, 'forward_from', None)
                          or getattr(message, 'forward_from_chat', None)
                          or getattr(message, 'forward_sender_name', None)
                          or getattr(message, 'forward_date', None))
             via = getattr(message, 'via_bot', None)
+            sender = message.from_user.id
             await controller.command(SimpleNamespace(
                 raw_text=str(getattr(message, 'text', None) or getattr(message, 'caption', None) or ''),
-                # Saved Messages may have outgoing=False in Pyrogram. Ownership
-                # is established above using the actual sender.
-                out=True, sender_id=owner, chat_id=message.chat.id, fwd_from=forwarded,
+                # Saved Messages may have outgoing=False in Pyrogram. Preserve
+                # the real sender and establish ownership only for this account.
+                out=sender == owner, sender_id=sender, chat_id=message.chat.id, fwd_from=forwarded,
                 via_bot_id=getattr(via, 'id', None)))
 
         game_filter = filters.create(from_game, name='HeXamonIncoming')
-        owner_filter = filters.create(from_owner, name='HeXamonOwner')
+        command_filter = filters.create(from_authorized_user, name='HeXamonAuthorizedUser')
         self.raw.add_handler(MessageHandler(receive, game_filter))
         self.raw.add_handler(EditedMessageHandler(receive, game_filter))
-        self.raw.add_handler(MessageHandler(command, owner_filter))
+        self.raw.add_handler(MessageHandler(command, command_filter))

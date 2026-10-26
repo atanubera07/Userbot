@@ -51,6 +51,20 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
                         '.hexa stop', '.hexa catch', '.hexa status']:
             self.assertIsNone(self.commands.filter(self.event(command)))
 
+    async def test_configured_sudo_incoming_commands_match_in_private_and_group_chats(self):
+        self.client.add_event_handler.reset_mock()
+        self.controller.cfg = NS(sudo_users=frozenset({456}))
+        register_handlers(self.client, self.controller, 572621020, 123)
+        commands = self.client.add_event_handler.call_args_list[-1].args[1]
+        await commands.resolve(self.client)
+        for chat in [123, -100789]:
+            self.assertTrue(commands.filter(self.event('.battle', chat=chat, sender=456, outgoing=False)))
+            self.assertTrue(commands.filter(self.event('.help', chat=chat)))
+        for event in [self.event('.battle', sender=789, outgoing=False),
+                      self.event('.battle', sender=456, outgoing=False, forwarded=True),
+                      self.event('/stop', sender=456, outgoing=False)]:
+            self.assertIsNone(commands.filter(event))
+
     async def test_only_bot_messages_and_edits_match_receive_handler(self):
         for builder, edited in [(self.incoming, False), (self.edited, True)]:
             event = self.event('Wild Abra', chat=572621020, sender=572621020,
