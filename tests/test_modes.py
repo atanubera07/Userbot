@@ -56,7 +56,7 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
 
     async def start(self, mode):
         self.hunt_sent.clear()
-        await self.c.command(self.command(f'.{mode}'))
+        await self.c.command(self.command(f'.{"caught" if mode == "catch" else mode}'))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
 
     async def feed_until_click(self, msg):
@@ -144,7 +144,7 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
         worker = self.c.worker
         sends = self.client.send_message.await_count
         for text in ['/go', '/stop', '/status', '.hexa battle', '.hexa catch',
-                     '.hexa caught', '.hexa stop', '.hexa status', '.hexa help']:
+                     '.catch', '.hexa caught', '.hexa stop', '.hexa status', '.hexa help']:
             await self.c.command(self.command(text))
         self.assertTrue(self.c.running)
         self.assertIs(self.c.worker, worker)

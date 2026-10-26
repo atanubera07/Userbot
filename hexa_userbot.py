@@ -3,7 +3,7 @@
 Python 3.10+, Telethon 1.x or Pyrogram 2.x. Configure .env, then run python hexa_userbot.py.
 Commands sent by the logged-in account or configured sudo users in any chat:
     .battle   battle ordinary Pokemon without catching
-    .catch    catch listed targets, weakening when needed (.caught also works)
+    .caught    catch listed targets, weakening when needed
     .stop    pause the worker
     .status  report the selected mode and encounter
     .help    show commands
@@ -35,11 +35,11 @@ LOG = logging.getLogger('hexa')
 
 MODES = {'battle', 'catch'}
 LIBRARIES = {'telethon', 'pyrogram'}
-COMMAND_PATTERN = re.compile(r'(?i)^[ \t]*\.[ \t]*(battle|catch|caught|resume|stop|status|help)[ \t]*\Z')
+COMMAND_PATTERN = re.compile(r'(?i)^[ \t]*\.[ \t]*(battle|caught|resume|stop|status|help)[ \t]*\Z')
 HELP_TEXT = (
     'HeXamon commands (account owner and configured sudo users):\n'
     '.battle — battle all ordinary wild Pokémon; catching disabled\n'
-    '.catch / .caught — catch listed targets, weakening when needed\n'
+    '.caught — catch listed targets, weakening when needed\n'
     '.stop — pause automation\n'
     '.status — show mode, stage, and limits\n'
     '.help — show this message\n'
@@ -1232,7 +1232,7 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             if health is not None:
                 health.ready = True
             print(f'Ready: selected mode={controller.mode}; library={library}; {len(settings.targets)} catch targets.\n'
-                  'Send .battle, .catch, or .help as the owner or a configured sudo user.\n'
+                  'Send .battle, .caught, or .help as the owner or a configured sudo user.\n'
                   'Finish any existing encounter and pending verification manually before starting.')
             if autostart:
                 await controller.start()

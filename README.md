@@ -61,7 +61,7 @@ where you can send messages, including Saved Messages, private chats, and groups
 | Command | Action |
 | --- | --- |
 | `.battle` | Start battling all ordinary wild Pokémon |
-| `.catch` or `.caught` | Start catching Pokémon from `TARGETS` |
+| `.caught` | Start catching Pokémon from `TARGETS` |
 | `.stop` | Pause automation and cancel pending delayed actions |
 | `.status` | Show mode, stage, selected species, limits, and recoveries |
 | `.help` | Show commands |
@@ -84,7 +84,7 @@ Start/stop and encounter alerts include that ID and use your
 configured notification destination.
 
 To change modes, send `.stop`, finish the current encounter manually, then
-send `.catch` (or `.caught`) or `.battle`. A mode command while already running keeps
+send `.caught` or `.battle`. A mode command while already running keeps
 the current worker and reports the active mode. Only one worker runs at a time.
 Stopping does not finish an encounter for you. Every start sends a fresh `/hunt`.
 
@@ -270,7 +270,7 @@ Keep `TELEGRAM_SESSION_STRING` in that local `.env`. Never bake secrets into the
 Docker image. The included image starts the worker without interactive prompts.
 
 After deployment, check the logs for `Ready`, then send `.battle` or
-`.catch` in Saved Messages. A restart connects and waits for a command;
+`.caught` in Saved Messages. A restart connects and waits for a command;
 automatic hunting on restart is disabled. Keep one replica and stop the previous
 deployment before enabling another one with the same session. The session lock
 only protects copies sharing the same local filesystem.

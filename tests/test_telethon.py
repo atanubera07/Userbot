@@ -34,8 +34,8 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_owner_commands_match_in_saved_bot_and_other_chats(self):
         for chat in [123, 572621020, 789, -100456]:
-            for command in ['.battle', '. battle', '.catch', '. catch', '.caught', '.stop', '.status',
-                            '.help', '.resume', '.CAUGHT', '.CATCH']:
+            for command in ['.battle', '. battle', '.caught', '.stop', '.status',
+                            '.help', '.resume', '.CAUGHT']:
                 event = self.event(command, chat=chat)
                 self.assertTrue(self.commands.filter(event), command)
 
@@ -47,7 +47,7 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.commands.filter(event))
 
     async def test_removed_commands_do_not_match_the_event_filter(self):
-        for command in ['/go', '/stop', '/status', '.hexa battle', '.hexa help',
+        for command in ['.catch', '. catch', '.CATCH', '/go', '/stop', '/status', '.hexa battle', '.hexa help',
                         '.hexa stop', '.hexa catch', '.hexa status']:
             self.assertIsNone(self.commands.filter(self.event(command)))
 
