@@ -25,6 +25,7 @@ import signal
 import unicodedata
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -264,6 +265,9 @@ class Controller:
         self.client, self.peer, self.owner, self.cfg = client, peer, owner, settings
         self.alert_peer = settings.notify
         self.alert_tag = settings.alert_tag
+        self.alert_error = None
+        self.alert_state = 'saved_messages' if settings.notify in ('me', owner) else 'configured'
+        self._alert_resolve_after = 0.0
         self.targets = {'*'} if settings.targets == {'*'} else {normalized(x) for x in settings.targets}
         if settings.mode not in MODES:
             raise ValueError('Mode must be battle or catch')
@@ -300,17 +304,47 @@ class Controller:
     async def note(self, text):
         LOG.info('%s', text)
         message = f'Hexa | Account {self.owner} | {self.alert_tag}\n{text}'
+        occurred_at = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+        group_configured = self.cfg.notify not in ('me', self.owner)
+        if group_configured and self.alert_peer == self.owner:
+            # A startup cache/membership failure must not leave alerts routed to
+            # Saved Messages permanently. Retry resolution at most once a minute.
+            now = asyncio.get_running_loop().time()
+            if now >= self._alert_resolve_after:
+                self._alert_resolve_after = now + 60
+                try:
+                    self.alert_peer = await resolve_alert_chat(self.client, self.cfg.notify)
+                except Exception as exc:
+                    self.alert_error = type(exc).__name__
+                    LOG.warning('Alert destination resolution failed: %s', self.alert_error)
+            if self.alert_peer == self.owner:
+                await self._fallback_alert(message, occurred_at, self.alert_error or 'UnresolvedDestination')
+                return
         try:
             await self.client.send_message(self.alert_peer, message, parse_mode=None)
-        except Exception:
+        except Exception as exc:
+            self.alert_error = type(exc).__name__
+            self.alert_state = 'failed'
             LOG.exception('Could not deliver alert to configured chat')
-            if self.cfg.notify not in ('me', self.owner):
-                # A muted/inaccessible group must not silently swallow a critical alert.
-                try:
-                    await self.client.send_message(
-                        self.owner, 'Group alert delivery failed.\n' + message, parse_mode=None)
-                except Exception:
-                    LOG.exception('Could not deliver fallback alert to Saved Messages')
+            if group_configured:
+                await self._fallback_alert(message, occurred_at, self.alert_error)
+        else:
+            self.alert_error = None
+            self.alert_state = 'configured' if group_configured else 'saved_messages'
+            LOG.info('Alert delivered: account=%s destination=%s', self.owner, self.cfg.notify)
+
+    async def _fallback_alert(self, message, occurred_at, error_name):
+        self.alert_error = error_name
+        self.alert_state = 'fallback'
+        # Show only the exception class, never raw RPC/HTTP exception text.
+        diagnostic = (f'Group alert delivery failed.\nEvent time: {occurred_at}\n'
+                      f'Destination: {self.cfg.notify}\nReason: {error_name}\n')
+        try:
+            await self.client.send_message(self.owner, diagnostic + message, parse_mode=None)
+            LOG.info('Alert fallback delivered: account=%s reason=%s', self.owner, error_name)
+        except Exception:
+            self.alert_state = 'failed'
+            LOG.exception('Could not deliver fallback alert to Saved Messages')
 
     async def stop(self, reason='Stopped by user', notify=True, state='paused'):
         self.running = False
@@ -377,7 +411,8 @@ class Controller:
                     f'Account {self.owner}: {self.reason}; mode={self.mode}; stage={self.state}; '
                     f'target={self.selected_name or "none"}; encounter={self.encounter_mode}; '
                     f'ball={self.selected_ball}; throws={self.throws}/{self.cfg.max_throws}; '
-                    f'attacks={self.attacks}/{self.cfg.max_attacks}; timeout recoveries={self.timeout_restarts}',
+                    f'attacks={self.attacks}/{self.cfg.max_attacks}; timeout recoveries={self.timeout_restarts}; '
+                    f'alerts={self.alert_state}; last_alert_error={self.alert_error or "none"}',
                     parse_mode=None,
                 )
             else:
@@ -1135,13 +1170,18 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
             owner = profile.id
             LOG.info('Telegram account connected: id=%s username=%s', owner, getattr(profile, 'username', None) or '(none)')
             peer = await resolve_bot(client, username, bot_id)
+            alert_resolution_error = None
             try:
                 alert_peer = await resolve_alert_chat(client, settings.notify)
-            except (ValueError, RPCError):
+            except (ValueError, RPCError) as exc:
                 LOG.warning('Could not resolve the configured alert chat; using Saved Messages.')
                 alert_peer = owner
+                alert_resolution_error = type(exc).__name__
             controller = Controller(client, peer, owner, settings, owner_profile=profile)
             controller.alert_peer = alert_peer
+            if alert_resolution_error is not None:
+                controller.alert_state = 'fallback'
+                controller.alert_error = alert_resolution_error
             # Concurrent update dispatch keeps .stop responsive during delays.
             register_handlers(client, controller, peer, owner)
             if health is not None:

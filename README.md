@@ -189,7 +189,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-265 offline tests passed. Tests include real Telegram-library
+274 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -315,3 +315,10 @@ separate deployments do not share its default timestamp-based IDs. If Telegram
 explicitly rejects an ID collision, the adapter retries that message once with
 a fresh ID. Other delivery errors still use the Saved Messages fallback;
 permission failures and uncertain network outcomes are not retried by the adapter.
+
+If the alert group cannot be resolved at startup, later alerts retry resolution
+at most once a minute, so group delivery can recover without restarting. Saved
+Messages fallback notices include the event time in UTC, configured destination,
+and error class. `.status` shows the current alert route and last error, and a
+successful alert clears that error. This distinguishes old fallback notices
+from new delivery failures.
