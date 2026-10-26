@@ -103,13 +103,13 @@ existing encounter or verification manually, then send one of these commands in
 any chat from the logged-in account:
 
 ```text
-.hexa battle
-.hexa catch
-.hexa status
-.hexa stop
+.battle
+.caught
+.status
+.stop
 ```
 
-To change modes, send `.hexa stop`, finish the current encounter manually, then
+To change modes, send `.stop`, finish the current encounter manually, then
 send the other mode command. Every start begins a fresh `/hunt`.
 
 After 15 minutes without inbound HTTP or WebSocket traffic, Render may put the
@@ -131,7 +131,7 @@ Free services have no persistent disk. Their local lock cannot protect two
 separate Render instances, and ordinary redeploys can briefly run old and new
 instances together. For a planned update, use this replacement procedure:
 
-1. Send `.hexa stop` and finish the active encounter manually.
+1. Send `.stop` and finish the active encounter manually.
 2. **Suspend the old service** in Render. Wait until it has fully stopped.
 3. Push the updated project files to GitHub.
 4. Create a **new Free Web Service with a different service name** from the

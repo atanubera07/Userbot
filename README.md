@@ -2,7 +2,7 @@
 
 A standalone Python userbot for your Telegram account, combining the battle
 behavior from `test.py` and the catching behavior from `hexa_v4.py`. It uses the
-Telethon 1.x or Pyrogram 2.x and `.hexa` commands. It does not require LEGENDBOT,
+Telethon 1.x or Pyrogram 2.x and dot commands. It does not require LEGENDBOT,
 a database, or an assistant bot token.
 
 **Free Render setup:** use the included `render.yaml` and [Render guide](RENDER.md).
@@ -60,13 +60,15 @@ where you can send messages, including Saved Messages, private chats, and groups
 
 | Command | Action |
 | --- | --- |
-| `.hexa battle` | Start battling all ordinary wild Pokémon |
-| `.hexa catch` | Start catching Pokémon from `TARGETS` |
-| `.hexa stop` | Pause automation and cancel pending delayed actions |
-| `.hexa status` | Show mode, stage, selected species, limits, and recoveries |
-| `.hexa help` | Show commands |
-| `/go` | Start the currently selected mode |
-| `/stop`, `/status` | Short aliases for stop and status |
+| `.battle` | Start battling all ordinary wild Pokémon |
+| `.caught` | Start catching Pokémon from `TARGETS` |
+| `.stop` | Pause automation and cancel pending delayed actions |
+| `.status` | Show mode, stage, selected species, limits, and recoveries |
+| `.help` | Show commands |
+| `.resume` | Start the currently selected mode |
+
+A space after the dot is optional: `. battle` also starts battle mode. The old
+`.hexa ...` commands and `/go`, `/stop`, and `/status` are no longer accepted.
 
 Only commands sent by the logged-in account are accepted, in any chat. Each
 account controls its own userbot. Forwarded commands
@@ -74,13 +76,13 @@ and commands sent through inline bots are ignored. Status and help replies appea
 in the chat where you sent the command. Start/stop and encounter alerts use your
 configured notification destination.
 
-To change modes, send `.hexa stop`, finish the current encounter manually, then
-send `.hexa catch` or `.hexa battle`. A mode command while already running keeps
+To change modes, send `.stop`, finish the current encounter manually, then
+send `.caught` or `.battle`. A mode command while already running keeps
 the current worker and reports the active mode. Only one worker runs at a time.
 Stopping does not finish an encounter for you. Every start sends a fresh `/hunt`.
 
 The selected mode lasts until you change it or restart the process. After a
-process restart, `/go` uses `HEXA_MODE` from `.env` (default `battle`). By default,
+process restart, `.resume` uses `HEXA_MODE` from `.env` (default `battle`). By default,
 launching the script only connects and waits for a command. To start immediately:
 
 ```bash
@@ -121,7 +123,7 @@ Move power alone does not predict damage. Weakening can still knock out a target
 Shiny text, listed legendary encounters, Halloween forms, verification questions,
 daily hunt limits, unsupported screens, and action errors pause automation.
 You handle these encounters and verification questions manually. They do not
-resume automatically; send a mode command or `/go` after resolving the situation.
+resume automatically; send a mode command or `.resume` after resolving the situation.
 The userbot never generates or submits verification answers.
 
 If one of your Pokémon faints, the userbot chooses a unique Hunt Team button, or
@@ -179,7 +181,7 @@ to Telegram. `--check` validates configuration without connecting. Actual game
 message formatting must match the supported screens; unknown controls pause.
 
 Verified with Python 3.12, Telethon 1.45.0, and Pyrogram 2.0.106:
-243 offline tests passed. Tests include real Telegram-library
+246 offline tests passed. Tests include real Telegram-library
 event filters, local HTTP requests, and mocked hosting login; integration checks are skipped if their
 dependencies are missing. No live Telegram account was connected during
 verification.
@@ -257,8 +259,8 @@ docker run -d --name hexa-userbot --restart unless-stopped --env-file .env hexa-
 Keep `TELEGRAM_SESSION_STRING` in that local `.env`. Never bake secrets into the
 Docker image. The included image starts the worker without interactive prompts.
 
-After deployment, check the logs for `Ready`, then send `.hexa battle` or
-`.hexa catch` in Saved Messages. A restart connects and waits for a command;
+After deployment, check the logs for `Ready`, then send `.battle` or
+`.caught` in Saved Messages. A restart connects and waits for a command;
 automatic hunting on restart is disabled. Keep one replica and stop the previous
 deployment before enabling another one with the same session. The session lock
 only protects copies sharing the same local filesystem.

@@ -34,17 +34,22 @@ class TelethonHandlerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_owner_commands_match_in_saved_bot_and_other_chats(self):
         for chat in [123, 572621020, 789, -100456]:
-            for command in ['.hexa battle', '.hexa catch', '.hexa stop', '.hexa status',
-                            '.hexa help', '/go', '/stop', '/status', '.HEXA CATCH']:
+            for command in ['.battle', '. battle', '.caught', '.stop', '.status',
+                            '.help', '.resume', '.CAUGHT']:
                 event = self.event(command, chat=chat)
                 self.assertTrue(self.commands.filter(event), command)
 
     async def test_other_senders_incoming_and_forwarded_commands_are_ignored(self):
-        for event in [self.event('.hexa catch', chat=789, sender=789),
-                      self.event('.hexa catch', outgoing=False),
-                      self.event('.hexa catch', forwarded=True),
-                      self.event('hi .hexa catch'), self.event('/gopher')]:
+        for event in [self.event('.caught', chat=789, sender=789),
+                      self.event('.caught', outgoing=False),
+                      self.event('.caught', forwarded=True),
+                      self.event('hi .caught'), self.event('.resumepher')]:
             self.assertIsNone(self.commands.filter(event))
+
+    async def test_removed_commands_do_not_match_the_event_filter(self):
+        for command in ['/go', '/stop', '/status', '.hexa battle', '.hexa help',
+                        '.hexa stop', '.hexa catch', '.hexa status']:
+            self.assertIsNone(self.commands.filter(self.event(command)))
 
     async def test_only_bot_messages_and_edits_match_receive_handler(self):
         for builder, edited in [(self.incoming, False), (self.edited, True)]:

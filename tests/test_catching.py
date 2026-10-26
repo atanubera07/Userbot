@@ -109,10 +109,10 @@ class CatchTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_verification_resumes_only_with_explicit_go(self):
         await self.c.receive(NS(message=self.msg(self.question, ident=4)))
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/status'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.status'))
         self.assertFalse(self.c.running)
         self.assertIn('stage=verification', self.client.send_message.await_args.args[1])
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/go'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.resume'))
         await asyncio.sleep(0)
         self.assertTrue(self.c.running)
         self.assertEqual(self.c.verification_text, '')
@@ -711,7 +711,7 @@ class CatchTests(unittest.IsolatedAsyncioTestCase):
         worker = asyncio.create_task(self.c.process(msg))
         self.c.worker = worker
         await asyncio.sleep(0)
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/stop'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.stop'))
         msg.click.assert_not_awaited()
         self.assertTrue(worker.cancelled())
 
@@ -789,18 +789,18 @@ class CatchTests(unittest.IsolatedAsyncioTestCase):
             await resolve_alert_chat(client, '@invalid_group')
 
     async def test_status_reports_limits(self):
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/status'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.status'))
         self.assertIn('throws=0/30', self.client.send_message.await_args.args[1])
         self.assertIn('attacks=0/10', self.client.send_message.await_args.args[1])
 
     async def test_go_duplicate_does_not_spawn_worker(self):
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/go'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.resume'))
         self.assertIsNone(self.c.worker)
         self.assertIn('Already running', self.client.send_message.await_args.args[1])
 
     async def test_go_stop_worker_lifecycle(self):
         await self.c.stop(notify=False)
-        await self.c.command(NS(out=True, chat_id=123, raw_text='/go'))
+        await self.c.command(NS(out=True, chat_id=123, raw_text='.resume'))
         await asyncio.sleep(0)
         worker = self.c.worker
         self.assertTrue(self.c.running)

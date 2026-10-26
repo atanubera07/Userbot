@@ -23,7 +23,7 @@ class UpdateRecoveryTests(unittest.IsolatedAsyncioTestCase):
         return self.raw.types.updates.State(pts=pts, qts=2, date=101, seq=4, unread_count=0)
 
     async def test_gap_recovers_missed_messages_through_normal_parser(self):
-        message = NS(id=20, message='.hexa status')
+        message = NS(id=20, message='.status')
         difference = self.raw.types.updates.Difference(
             new_messages=[message], new_encrypted_messages=[], other_updates=[],
             chats=[], users=[], state=self.state(15))

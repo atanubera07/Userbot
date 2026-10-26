@@ -182,14 +182,14 @@ class PyrogramAdapterTests(unittest.IsolatedAsyncioTestCase):
         controller = NS(receive=AsyncMock(), command=AsyncMock())
         self.transport.register_controller_handlers(controller, 572621020, 123)
         handler = self.raw.add_handler.call_args_list[-1].args[0]
-        saved = self.message('.hexa catch', chat=123, sender=123, outgoing=False)
+        saved = self.message('.caught', chat=123, sender=123, outgoing=False)
         self.assertTrue(await handler.filters(self.raw, saved))
         await handler.callback(self.raw, saved)
         event = controller.command.await_args.args[0]
         self.assertTrue(event.out)
-        self.assertEqual((event.chat_id, event.raw_text), (123, '.hexa catch'))
-        for other in [self.message('.hexa catch', chat=123, sender=789),
-                      self.message('.hexa catch', chat=-100123, sender=789)]:
+        self.assertEqual((event.chat_id, event.raw_text), (123, '.caught'))
+        for other in [self.message('.caught', chat=123, sender=789),
+                      self.message('.caught', chat=-100123, sender=789)]:
             self.assertFalse(await handler.filters(self.raw, other))
             await handler.callback(self.raw, other)
         self.assertEqual(controller.command.await_count, 1)
@@ -200,12 +200,12 @@ class PyrogramAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.transport.register_controller_handlers(controller, 572621020, 123)
         handler = self.raw.add_handler.call_args_list[-1].args[0]
         for chat in [789, -100123, -100987]:
-            message = self.message('.hexa status', chat=chat, sender=123, outgoing=True)
+            message = self.message('.status', chat=chat, sender=123, outgoing=True)
             self.assertTrue(await handler.filters(self.raw, message))
             await handler.callback(self.raw, message)
             self.assertEqual(self.raw.send_message.await_args.args[0], chat)
         for sender in [789, None]:
-            message = self.message('.hexa battle', chat=-100123, sender=sender, outgoing=True)
+            message = self.message('.battle', chat=-100123, sender=sender, outgoing=True)
             await handler.callback(self.raw, message)
         self.assertFalse(controller.running)
         self.assertEqual(self.raw.send_message.await_count, 3)
@@ -217,7 +217,7 @@ class PyrogramAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.transport.register_controller_handlers(controller, 572621020, 123)
         handler = self.raw.add_handler.call_args_list[-1].args[0]
         for extra in [{'forward_from': NS(id=999)}, {'via_bot': NS(id=888)}]:
-            await handler.callback(self.raw, self.message('.hexa catch', chat=123, sender=123, **extra))
+            await handler.callback(self.raw, self.message('.caught', chat=123, sender=123, **extra))
         self.assertFalse(controller.running)
         self.raw.send_message.assert_not_awaited()
 

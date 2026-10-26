@@ -2,13 +2,13 @@
 
 Python 3.10+, Telethon 1.x or Pyrogram 2.x. Configure .env, then run python hexa_userbot.py.
 Commands sent by the logged-in account in any chat:
-    .hexa battle   battle ordinary Pokemon without catching
-    .hexa catch    catch listed targets, weakening when needed
-    .hexa stop    pause the worker
-    .hexa status  report the selected mode and encounter
-    .hexa help    show commands
+    .battle   battle ordinary Pokemon without catching
+    .caught    catch listed targets, weakening when needed
+    .stop    pause the worker
+    .status  report the selected mode and encounter
+    .help    show commands
 
-/go starts the selected mode; /stop and /status remain available.
+.resume starts the selected mode. A space after the dot is optional.
 Special encounters and verification questions pause for manual handling.
 Use --check for offline configuration validation or --self-test for mocked tests.
 """
@@ -34,15 +34,15 @@ LOG = logging.getLogger('hexa')
 
 MODES = {'battle', 'catch'}
 LIBRARIES = {'telethon', 'pyrogram'}
-COMMAND_PATTERN = re.compile(r'(?i)^(?:\.hexa(?:\s+[^\r\n]*)?|/(?:go|stop|status))\s*$')
+COMMAND_PATTERN = re.compile(r'(?i)^[ \t]*\.[ \t]*(battle|caught|resume|stop|status|help)[ \t]*\Z')
 HELP_TEXT = (
     'HeXamon commands (your own messages in any chat):\n'
-    '.hexa battle — battle all ordinary wild Pokémon; catching disabled\n'
-    '.hexa catch — catch listed targets, weakening when needed\n'
-    '.hexa stop — pause automation\n'
-    '.hexa status — show mode, stage, and limits\n'
-    '.hexa help — show this message\n'
-    '/go — start the selected mode; /stop and /status also work.\n'
+    '.battle — battle all ordinary wild Pokémon; catching disabled\n'
+    '.caught — catch listed targets, weakening when needed\n'
+    '.stop — pause automation\n'
+    '.status — show mode, stage, and limits\n'
+    '.help — show this message\n'
+    '.resume — start the selected mode again\n'
     'Before starting or changing modes, finish any active encounter and '
     'answer pending verification manually.'
 )
@@ -325,7 +325,7 @@ class Controller:
         if self.running:
             await self.note(
                 f'Already running in {self.mode} mode. '
-                'Use .hexa stop and finish the current encounter manually before changing modes.'
+                'Use .stop and finish the current encounter manually before changing modes.'
             )
             return
         self.mode = selected_mode
@@ -352,12 +352,10 @@ class Controller:
                 or getattr(event, 'via_bot_id', None) is not None):
             return
         text = (event.raw_text or '').strip().casefold()
-        if not COMMAND_PATTERN.fullmatch(text):
+        match = COMMAND_PATTERN.fullmatch(text)
+        if not match:
             return
-        action = {'/go': 'start', '/stop': 'stop', '/status': 'status'}.get(text)
-        if action is None:
-            parts = text.split()
-            action = parts[1] if len(parts) == 2 else 'help'
+        action = {'caught': 'catch', 'resume': 'start'}.get(match.group(1), match.group(1))
         LOG.info('Owner command received: %s', action)
         async with self.command_lock:
             if action in MODES:
@@ -383,7 +381,7 @@ class Controller:
         self.verification_message_id = message_id
         await self.stop(
             'Verification detected — hunting paused. Reply to the question manually in the HeXamon chat. '
-            'After answering and finishing any active battle, send /go to start a fresh hunt. '
+            'After answering and finishing any active battle, send .resume to start a fresh hunt. '
             'There is no automatic answer or automatic resume.\n\n' + self.verification_text[:2800],
             state='verification')
 
@@ -405,14 +403,14 @@ class Controller:
         if halloween_announcement or halloween_encounter:
             await self.stop(
                 '🎃 Halloween Pokémon detected. Automation paused for manual catching. '
-                'Inspect the HeXamon chat and finish this encounter before /go.\n' + text[:2800])
+                'Inspect the HeXamon chat and finish this encounter before .resume.\n' + text[:2800])
             return True
         wild = WILD.search(text)
         wild_name = encounter_name(text) or (wild.group(1).strip() if wild else None)
         if wild_name and normalized(wild_name) in LEGENDARY_NAMES:
             await self.stop(
                 f'Legendary alert: {wild_name}. Automation paused for manual catching. '
-                'Finish this encounter in the HeXamon chat before /go.\n' + text[:2800])
+                'Finish this encounter in the HeXamon chat before .resume.\n' + text[:2800])
             return True
         if re.search(r'\bshiny\b', text, re.I):
             await self.stop('Shiny detected. Inspect the bot chat; automation paused.\n' + text[:3000])
@@ -693,10 +691,10 @@ class Controller:
         if self.state == 'encounter':
             await self.next_hunt()
         elif current is None:
-            await self.stop('Timed-out encounter screen is unavailable; inspect chat before /go.')
+            await self.stop('Timed-out encounter screen is unavailable; inspect chat before .resume.')
         elif self.escape_reason is not None:
             # We already tried Back/Run. Its outcome is uncertain; do not replay it.
-            await self.stop('Escape outcome not confirmed after timeout; inspect chat before /go.')
+            await self.stop('Escape outcome not confirmed after timeout; inspect chat before .resume.')
         else:
             await self.begin_escape(current, 'Timeout recovery')
 
@@ -899,7 +897,7 @@ class Controller:
             raise
         except Exception:
             LOG.exception('Automation paused')
-            await self.stop('Telegram/action error. See terminal log; inspect chat before /go.')
+            await self.stop('Telegram/action error. See terminal log; inspect chat before .resume.')
 
 
 def api_credentials():
@@ -1012,7 +1010,7 @@ class HealthServer:
                     body = json.dumps({
                         'service': 'hexa-userbot',
                         'status': 'ready' if self.ready else 'starting',
-                        'controls': 'Send your own .hexa commands in any Telegram chat.',
+                        'controls': 'Send your own .help in any Telegram chat.',
                     }).encode() + b'\n'
             except (ValueError, UnicodeDecodeError, asyncio.IncompleteReadError,
                     asyncio.LimitOverrunError, asyncio.TimeoutError):
@@ -1133,12 +1131,12 @@ async def main(autostart=False, mode=None, non_interactive=False, http_port=None
                 alert_peer = owner
             controller = Controller(client, peer, owner, settings, owner_profile=profile)
             controller.alert_peer = alert_peer
-            # Concurrent update dispatch keeps /stop responsive during delays.
+            # Concurrent update dispatch keeps .stop responsive during delays.
             register_handlers(client, controller, peer, owner)
             if health is not None:
                 health.ready = True
             print(f'Ready: selected mode={controller.mode}; library={library}; {len(settings.targets)} catch targets.\n'
-                  'Send your own .hexa battle, .hexa catch, or .hexa help in any Telegram chat.\n'
+                  'Send your own .battle, .caught, or .help in any Telegram chat.\n'
                   'Finish any existing encounter and pending verification manually before starting.')
             if autostart:
                 await controller.start()

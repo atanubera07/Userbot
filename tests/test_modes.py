@@ -56,7 +56,7 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
 
     async def start(self, mode):
         self.hunt_sent.clear()
-        await self.c.command(self.command(f'.hexa {mode}'))
+        await self.c.command(self.command(f'.{"caught" if mode == "catch" else mode}'))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
 
     async def feed_until_click(self, msg):
@@ -105,7 +105,7 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
         await self.start('battle')
         worker = self.c.worker
         sends = self.client.send_message.await_count
-        await self.c.command(self.command('.hexa catch'))
+        await self.c.command(self.command('.caught'))
         self.assertEqual(self.c.mode, 'battle')
         self.assertIs(self.c.worker, worker)
         self.assertEqual(self.client.send_message.await_count, sends + 1)
@@ -114,72 +114,89 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
     async def test_stop_then_switch_in_both_directions(self):
         await self.start('battle')
         first = self.c.worker
-        await self.c.command(self.command('.hexa stop'))
+        await self.c.command(self.command('.stop'))
         self.assertTrue(first.done())
         await self.start('catch')
         self.assertEqual(self.c.mode, 'catch')
         self.assertIsNot(self.c.worker, first)
         second = self.c.worker
-        await self.c.command(self.command('.hexa stop'))
+        await self.c.command(self.command('.stop'))
         self.assertTrue(second.done())
         await self.start('battle')
         self.assertEqual(self.c.mode, 'battle')
 
-    async def test_go_restarts_the_selected_mode(self):
+    async def test_resume_restarts_the_selected_mode(self):
         await self.start('catch')
-        await self.c.command(self.command('/stop'))
+        await self.c.command(self.command('.stop'))
         self.hunt_sent.clear()
-        await self.c.command(self.command('/go'))
+        await self.c.command(self.command('.resume'))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
         self.assertEqual(self.c.mode, 'catch')
 
+    async def test_space_after_dot_starts_battle(self):
+        await self.c.command(self.command('. battle'))
+        await asyncio.wait_for(self.hunt_sent.wait(), 1)
+        self.assertTrue(self.c.running)
+        self.assertEqual(self.c.mode, 'battle')
+
+    async def test_removed_commands_do_not_control_a_running_worker(self):
+        await self.start('battle')
+        worker = self.c.worker
+        sends = self.client.send_message.await_count
+        for text in ['/go', '/stop', '/status', '.hexa battle', '.hexa catch',
+                     '.hexa caught', '.hexa stop', '.hexa status', '.hexa help']:
+            await self.c.command(self.command(text))
+        self.assertTrue(self.c.running)
+        self.assertIs(self.c.worker, worker)
+        self.assertEqual(self.client.send_message.await_count, sends)
+
     async def test_duplicate_start_does_not_spawn_another_worker(self):
-        await asyncio.gather(self.c.command(self.command('.hexa catch')),
-                             self.c.command(self.command('.hexa battle')))
+        await asyncio.gather(self.c.command(self.command('.caught')),
+                             self.c.command(self.command('.battle')))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
         self.assertEqual(sum(call.args[1] == '/hunt' for call in self.client.send_message.await_args_list), 1)
         self.assertEqual(self.c.mode, 'catch')
 
     async def test_unauthorized_and_forwarded_commands_do_nothing(self):
-        for event in [self.command('.hexa catch', out=False),
-                      self.command('.hexa catch', chat_id=-100456, sender_id=789),
-                      self.command('.hexa catch', chat_id=None),
-                      self.command('.hexa catch', fwd_from=NS()),
-                      self.command('.hexa catch', via_bot_id=789)]:
+        for event in [self.command('.caught', out=False),
+                      self.command('.caught', chat_id=-100456, sender_id=789),
+                      self.command('.caught', chat_id=None),
+                      self.command('.caught', fwd_from=NS()),
+                      self.command('.caught', via_bot_id=789)]:
             await self.c.command(event)
         self.client.send_message.assert_not_awaited()
         self.assertFalse(self.c.running)
 
     async def test_owner_status_replies_in_any_source_chat(self):
         for chat in [789, -100456, -100987]:
-            await self.c.command(self.command('.hexa status', chat_id=chat, sender_id=123))
+            await self.c.command(self.command('.status', chat_id=chat, sender_id=123))
             self.assertEqual(self.client.send_message.await_args.args[0], chat)
         self.assertFalse(self.c.running)
 
     async def test_commands_in_bot_chat_with_entity_peer(self):
         self.c.peer = NS(id=572621020)
-        await self.c.command(self.command('.hexa catch', chat_id=572621020))
+        await self.c.command(self.command('.caught', chat_id=572621020))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
         self.assertEqual(self.c.mode, 'catch')
 
     async def test_unrelated_messages_and_extra_arguments_do_not_start(self):
-        for text in ['hi .hexa catch', '.hexacatch', '/go now', '.hexa catch extra', '.hexa nonsense']:
+        for text in ['hi .caught', '.hexacatch', '.resume now', '.caught extra', '.nonsense']:
             await self.c.command(self.command(text))
         self.assertFalse(self.c.running)
         self.assertFalse(any(call.args[1] == '/hunt' for call in self.client.send_message.await_args_list))
 
     async def test_case_insensitive_commands(self):
-        await self.c.command(self.command('  .HEXA CATCH  '))
+        await self.c.command(self.command('  .CAUGHT  '))
         await asyncio.wait_for(self.hunt_sent.wait(), 1)
         self.assertEqual(self.c.mode, 'catch')
 
     async def test_status_and_help_respond_in_control_chat(self):
-        await self.c.command(self.command('.hexa status'))
+        await self.c.command(self.command('.status'))
         self.assertEqual(self.client.send_message.await_args.args[0], 123)
         self.assertIn('mode=battle', self.client.send_message.await_args.args[1])
-        for text in ['.hexa', '.hexa help']:
+        for text in ['.help', '. help']:
             await self.c.command(self.command(text))
-            self.assertIn('.hexa catch', self.client.send_message.await_args.args[1])
+            self.assertIn('.caught', self.client.send_message.await_args.args[1])
         self.assertFalse(self.c.running)
 
     async def test_stop_cancels_battle_attack_before_click(self):
@@ -189,10 +206,10 @@ class ModeTests(unittest.IsolatedAsyncioTestCase):
         battle = self.message(self.caption(), self.moves)
         self.messages[battle.id] = battle
         await self.c.receive(NS(message=battle))
-        # The worker is either queued or sleeping; neither may act after /stop.
+        # The worker is either queued or sleeping; neither may act after .stop.
         await asyncio.sleep(0)
         worker = self.c.worker
-        await self.c.command(self.command('.hexa stop'))
+        await self.c.command(self.command('.stop'))
         self.assertTrue(worker.done())
         battle.click.assert_not_awaited()
         self.assertFalse(self.c.running)

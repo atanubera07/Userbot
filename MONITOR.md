@@ -70,7 +70,7 @@ In cron-job.org, create a cronjob with these settings:
 
 This setup adds web requests only. It does not send Telegram messages or restart
 hunting. After an actual Render restart, finish any pending game question or
-encounter and send `.hexa battle` or `.hexa catch` again.
+encounter and send `.battle` or `.caught` again.
 
 ## Limits and stopping
 
